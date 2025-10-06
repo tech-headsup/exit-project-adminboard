@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
@@ -27,7 +33,10 @@ export function ReadinessChecklist({
   open,
   onOpenChange,
 }: ReadinessChecklistProps) {
-  const { data: readinessData, isLoading } = useProjectReadiness(projectId, open);
+  const { data: readinessData, isLoading } = useProjectReadiness(
+    projectId,
+    open
+  );
 
   const readiness = readinessData?.data;
 
@@ -74,9 +83,9 @@ export function ReadinessChecklist({
       description: "Every candidate has been assigned to an interviewer",
     },
     {
-      label: "Client SPOC Assigned",
+      label: "Client SPOC Assigned (Optional)",
       status: checks.clientSpocAssigned,
-      description: "At least one client SPOC has been assigned",
+      description: "Client SPOC can be assigned now or later",
     },
     {
       label: "Heads-Up SPOC Assigned",
@@ -103,17 +112,21 @@ export function ReadinessChecklist({
           {isReady ? (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800">Ready to Launch!</AlertTitle>
+              <AlertTitle className="text-green-800">
+                Ready to Launch!
+              </AlertTitle>
               <AlertDescription className="text-green-700">
-                {readiness?.message || "All requirements are met. You can start the project."}
+                {readiness?.message ||
+                  "All requirements are met. You can start the project."}
               </AlertDescription>
             </Alert>
           ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Not Ready</AlertTitle>
-              <AlertDescription>
-                Please complete the following requirements before starting the project.
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-800">Incomplete Setup</AlertTitle>
+              <AlertDescription className="text-yellow-700">
+                Some requirements are not complete. You can launch the project now
+                and complete these items later.
               </AlertDescription>
             </Alert>
           )}
@@ -144,8 +157,8 @@ export function ReadinessChecklist({
           </Card>
 
           {/* Blockers */}
-          {blockers.length > 0 && (
-            <Card className="border-yellow-200">
+          {/* {blockers.length > 0 && (
+            <Card className="">
               <CardHeader>
                 <CardTitle className="text-sm text-yellow-800">
                   Action Required
@@ -161,7 +174,7 @@ export function ReadinessChecklist({
                 </ul>
               </CardContent>
             </Card>
-          )}
+          )} */}
         </div>
 
         <DialogFooter>
@@ -174,10 +187,10 @@ export function ReadinessChecklist({
           </Button>
           <Button
             onClick={onConfirmStart}
-            disabled={!isReady || isStarting}
+            disabled={isStarting}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isStarting ? "Starting..." : "Confirm & Start Project"}
+            {isStarting ? "Starting..." : isReady ? "Confirm & Start Project" : "Start Project Anyway"}
           </Button>
         </DialogFooter>
       </DialogContent>

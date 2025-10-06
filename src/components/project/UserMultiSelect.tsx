@@ -28,6 +28,7 @@ interface UserMultiSelectProps {
   roleFilter?: UserRole | "NON_CLIENT"; // NON_CLIENT means all except CLIENT
   title?: string;
   cardDescription?: string;
+  hideCard?: boolean; // Option to render without Card wrapper
 }
 
 export function UserMultiSelect({
@@ -38,6 +39,7 @@ export function UserMultiSelect({
   roleFilter,
   title,
   cardDescription,
+  hideCard = false,
 }: UserMultiSelectProps) {
   // Build search filter based on role
   const searchFilter = roleFilter
@@ -62,6 +64,61 @@ export function UserMultiSelect({
     label: `${user.firstName} ${user.lastName} (${user.role})`,
   }));
 
+  const formField = (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => {
+        // Convert field value (array of IDs) to options
+        const selectedOptions = userOptions.filter((option) =>
+          field.value?.includes(option.value)
+        );
+
+        return (
+          <FormItem>
+            {label && <FormLabel>{label}</FormLabel>}
+            <FormControl>
+              <MultipleSelector
+                commandProps={{
+                  label: `Select ${label || "users"}`,
+                }}
+                value={selectedOptions}
+                onChange={(selected) => {
+                  // Convert selected options back to array of IDs
+                  field.onChange(selected.map((opt) => opt.value));
+                }}
+                defaultOptions={userOptions}
+                options={userOptions}
+                placeholder={
+                  isLoadingUsers
+                    ? "Loading users..."
+                    : userOptions.length === 0
+                    ? "No users found"
+                    : `Select ${(label || "users").toLowerCase()}`
+                }
+                hidePlaceholderWhenSelected
+                emptyIndicator={
+                  <p className="text-center text-sm text-gray-500">
+                    No users found
+                  </p>
+                }
+                disabled={isLoadingUsers || userOptions.length === 0}
+              />
+            </FormControl>
+            {description && (
+              <FormDescription>{description}</FormDescription>
+            )}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+
+  if (hideCard) {
+    return formField;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -73,56 +130,7 @@ export function UserMultiSelect({
           <CardDescription>{cardDescription}</CardDescription>
         )}
       </CardHeader>
-      <CardContent>
-        <FormField
-          control={control}
-          name={name}
-          render={({ field }) => {
-            // Convert field value (array of IDs) to options
-            const selectedOptions = userOptions.filter((option) =>
-              field.value?.includes(option.value)
-            );
-
-            return (
-              <FormItem>
-                <FormLabel>{label} *</FormLabel>
-                <FormControl>
-                  <MultipleSelector
-                    commandProps={{
-                      label: `Select ${label}`,
-                    }}
-                    value={selectedOptions}
-                    onChange={(selected) => {
-                      // Convert selected options back to array of IDs
-                      field.onChange(selected.map((opt) => opt.value));
-                    }}
-                    defaultOptions={userOptions}
-                    options={userOptions}
-                    placeholder={
-                      isLoadingUsers
-                        ? "Loading users..."
-                        : userOptions.length === 0
-                        ? "No users found"
-                        : `Select ${label.toLowerCase()}`
-                    }
-                    hidePlaceholderWhenSelected
-                    emptyIndicator={
-                      <p className="text-center text-sm text-gray-500">
-                        No users found
-                      </p>
-                    }
-                    disabled={isLoadingUsers || userOptions.length === 0}
-                  />
-                </FormControl>
-                {description && (
-                  <FormDescription>{description}</FormDescription>
-                )}
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
-      </CardContent>
+      <CardContent>{formField}</CardContent>
     </Card>
   );
 }
