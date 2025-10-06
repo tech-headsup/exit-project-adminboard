@@ -200,6 +200,7 @@ export interface UpdateProjectRequest {
   headsUpSpocIds?: string[];
   clientSpocIds?: string[];
   interviewerIds?: string[];
+  projectStatus?: ProjectStatus;
 }
 
 // Delete Project Request - POST /api/project/delete
