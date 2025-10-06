@@ -15,7 +15,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token");
     const response = await fetch(
       `${API_BASE_URL}${API_ENDPOINTS.STORAGE_BUCKET.UPLOAD}`,
       {
