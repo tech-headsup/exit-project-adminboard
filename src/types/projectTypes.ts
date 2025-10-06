@@ -22,6 +22,11 @@ export interface PopulatedCompany {
   nameOfCompany: string;
   companyEmail: string;
   industry: string;
+  companySize?: string;
+  companyLogo?: string;
+  companyThemeColor?: string;
+  companyContactNo?: string;
+  companyWebsiteURL?: string;
 }
 
 export interface PopulatedUser {

@@ -26,7 +26,7 @@ export const API_ENDPOINTS = {
 
   STORAGE_BUCKET: {
     UPLOAD: "/storage/upload", // FormData: { file: File }
-    RETRIEVE: "/storage/retrieve", // Body: { fileKey }
+    RETRIEVE_PUBLIC: "/storage/retrieve/public", // Body: { fileKey }
   },
 
   // Project endpoints (all POST with data in req.body)

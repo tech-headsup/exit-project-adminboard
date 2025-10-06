@@ -64,7 +64,7 @@ export const getCompanyColumns = (
         {row.original.companyLogo ? (
           <img
             src={
-              `${API_BASE_URL}${API_ENDPOINTS.STORAGE_BUCKET.RETRIEVE}/${row.original.companyLogo}` ||
+              `${API_BASE_URL}${API_ENDPOINTS.STORAGE_BUCKET.RETRIEVE_PUBLIC}/${row.original.companyLogo}` ||
               "/placeholder-image.png"
             }
             alt={row.original.nameOfCompany}

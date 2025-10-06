@@ -7,7 +7,7 @@ export const getImageUrl = (imageId: string | undefined): string => {
     return imageId;
   }
   // Otherwise, construct the URL using the API endpoint
-  return `${API_BASE_URL}${API_ENDPOINTS.STORAGE_BUCKET.RETRIEVE}/${imageId}`;
+  return `${API_BASE_URL}${API_ENDPOINTS.STORAGE_BUCKET.RETRIEVE_PUBLIC}/${imageId}`;
 };
 
 export const uploadImage = async (file: File): Promise<string | null> => {
