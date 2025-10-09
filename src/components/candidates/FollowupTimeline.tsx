@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Phone, Clock, User, FileText, Calendar } from "lucide-react";
+import { Phone, Clock, User, FileText, Calendar, CheckCircle, XCircle, PhoneOff, PhoneMissed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -13,26 +13,47 @@ interface FollowupTimelineProps {
 }
 
 /**
- * Get badge variant for call status
+ * Get badge variant for call status with color-coded system
  */
 const getCallStatusBadgeVariant = (status: CallStatus) => {
   switch (status) {
     case CallStatus.ANSWERED_AGREED:
-      return "secondary";
+      return "default"; // Green - Success
     case CallStatus.ANSWERED_DECLINED:
-      return "destructive";
+      return "destructive"; // Red - Rejected
     case CallStatus.NOT_ANSWERING:
-      return "outline";
+      return "secondary"; // Gray - Neutral
     case CallStatus.WRONG_NUMBER:
-      return "destructive";
+      return "destructive"; // Red - Error
     case CallStatus.SWITCHED_OFF:
-      return "outline";
+      return "secondary"; // Gray - Neutral
     case CallStatus.BUSY:
-      return "outline";
+      return "secondary"; // Gray - Neutral
     case CallStatus.CALLBACK_REQUESTED:
-      return "default";
+      return "outline"; // Blue outline - Pending action
     default:
       return "outline";
+  }
+};
+
+/**
+ * Get left border color for timeline card
+ */
+const getTimelineCardBorderColor = (status: CallStatus): string => {
+  switch (status) {
+    case CallStatus.ANSWERED_AGREED:
+      return "border-l-4 border-l-green-500";
+    case CallStatus.ANSWERED_DECLINED:
+    case CallStatus.WRONG_NUMBER:
+      return "border-l-4 border-l-red-500";
+    case CallStatus.CALLBACK_REQUESTED:
+      return "border-l-4 border-l-blue-500";
+    case CallStatus.NOT_ANSWERING:
+    case CallStatus.SWITCHED_OFF:
+    case CallStatus.BUSY:
+      return "border-l-4 border-l-gray-300";
+    default:
+      return "border-l-4 border-l-gray-300";
   }
 };
 
@@ -60,6 +81,28 @@ const getUserDisplayName = (user: string | PopulatedUser): string => {
   return `${user.firstName} ${user.lastName}`;
 };
 
+/**
+ * Get icon for call status
+ */
+const getCallStatusIcon = (status: CallStatus) => {
+  const iconClass = "h-4 w-4";
+  switch (status) {
+    case CallStatus.ANSWERED_AGREED:
+      return <CheckCircle className={`${iconClass} text-green-600`} />;
+    case CallStatus.ANSWERED_DECLINED:
+    case CallStatus.WRONG_NUMBER:
+      return <XCircle className={`${iconClass} text-red-600`} />;
+    case CallStatus.NOT_ANSWERING:
+    case CallStatus.SWITCHED_OFF:
+      return <PhoneOff className={`${iconClass} text-gray-500`} />;
+    case CallStatus.BUSY:
+    case CallStatus.CALLBACK_REQUESTED:
+      return <PhoneMissed className={`${iconClass} text-blue-500`} />;
+    default:
+      return <Phone className={`${iconClass} text-gray-500`} />;
+  }
+};
+
 export function FollowupTimeline({ attempts }: FollowupTimelineProps) {
   if (attempts.length === 0) {
     return (
@@ -77,39 +120,36 @@ export function FollowupTimeline({ attempts }: FollowupTimelineProps) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {sortedAttempts.map((attempt) => (
-        <Card key={attempt.attemptNumber}>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+        <Card
+          key={attempt.attemptNumber}
+          className="transition-all hover:shadow-md"
+        >
+          <CardContent className="py-4 px-5">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                  {getCallStatusIcon(attempt.callStatus)}
                 </div>
-                <h4 className="font-semibold">
-                  Follow-up Attempt #{attempt.attemptNumber}
-                </h4>
+                <div>
+                  <h4 className="font-semibold text-sm">
+                    Attempt #{attempt.attemptNumber}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(attempt.attemptTimestamp), "MMM dd, yyyy 'at' hh:mm a")}
+                  </p>
+                </div>
               </div>
-              <Badge variant={getCallStatusBadgeVariant(attempt.callStatus)}>
+              <Badge variant={getCallStatusBadgeVariant(attempt.callStatus)} className="shrink-0">
                 {formatCallStatus(attempt.callStatus)}
               </Badge>
             </div>
 
-            <dl className="grid gap-3 text-sm">
+            <dl className="grid gap-2.5 text-sm mt-3 pl-12">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>
-                  {format(
-                    new Date(attempt.attemptTimestamp),
-                    "MMM dd, yyyy 'at' hh:mm a"
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>
-                  Attempted by{" "}
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="text-xs">
                   {attempt.attemptedBy
                     ? getUserDisplayName(attempt.attemptedBy)
                     : "Unknown User"}
@@ -118,20 +158,16 @@ export function FollowupTimeline({ attempts }: FollowupTimelineProps) {
 
               {attempt.notes && (
                 <div className="flex items-start gap-2 text-muted-foreground">
-                  <FileText className="h-4 w-4 mt-0.5" />
-                  <span className="flex-1">{attempt.notes}</span>
+                  <FileText className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span className="flex-1 text-xs leading-relaxed">{attempt.notes}</span>
                 </div>
               )}
 
               {attempt.scheduledInterviewDate && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Scheduled for{" "}
-                    {format(
-                      new Date(attempt.scheduledInterviewDate),
-                      "MMM dd, yyyy 'at' hh:mm a"
-                    )}
+                <div className="flex items-center gap-2 mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-md border border-green-200 dark:border-green-800">
+                  <Calendar className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                  <span className="text-xs text-green-700 dark:text-green-300 font-medium">
+                    Scheduled: {format(new Date(attempt.scheduledInterviewDate), "MMM dd, yyyy 'at' hh:mm a")}
                   </span>
                 </div>
               )}

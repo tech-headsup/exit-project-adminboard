@@ -8,6 +8,7 @@ import {
   Play,
   CheckCircle2,
   Info,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -116,28 +117,35 @@ export function InterviewManagementCard({
     }
   };
 
+  // Helper function to get status badge variant with colors
+  const getStatusBadgeVariant = () => {
+    switch (status) {
+      case "COMPLETED":
+        return "default"; // Green
+      case "IN_PROGRESS":
+        return "secondary"; // Yellow/Amber
+      case "SCHEDULED":
+        return "outline"; // Blue outline
+      default:
+        return "outline"; // Gray
+    }
+  };
+
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-muted/50">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Interview Management</CardTitle>
-            <Badge
-              variant={
-                status === "COMPLETED"
-                  ? "secondary"
-                  : status === "IN_PROGRESS"
-                  ? "default"
-                  : status === "SCHEDULED"
-                  ? "default"
-                  : "outline"
-              }
-            >
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              Interview Management
+            </CardTitle>
+            <Badge variant={getStatusBadgeVariant()} className="font-medium">
               {status.replace("_", " ")}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           {/* Info Alert */}
           {!scheduledDate && !isDropped && (
             <Alert>
@@ -157,66 +165,71 @@ export function InterviewManagementCard({
             </Alert>
           )}
 
-          {/* Scheduled Date */}
-          <div className="flex items-start gap-2 text-sm">
-            <CalendarIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="font-medium text-muted-foreground">
-                Scheduled Date
-              </p>
-              <p>
-                {scheduledDate
-                  ? format(new Date(scheduledDate), "MMM dd, yyyy 'at' hh:mm a")
-                  : "Not scheduled yet"}
-              </p>
-            </div>
-          </div>
-
-          {/* Started At */}
-          {startedAt && (
-            <div className="flex items-start gap-2 text-sm">
-              <Play className="h-4 w-4 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="font-medium text-muted-foreground">Started At</p>
-                <p>
-                  {format(new Date(startedAt), "MMM dd, yyyy 'at' hh:mm a")}
+          {/* Interview Details */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <CalendarIcon className="h-4 w-4 text-blue-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Scheduled
+                </p>
+                <p className="text-sm font-semibold truncate">
+                  {scheduledDate
+                    ? format(new Date(scheduledDate), "MMM dd, yyyy 'at' hh:mm a")
+                    : "Not scheduled"}
                 </p>
               </div>
             </div>
-          )}
 
-          {/* Completed At */}
-          {completedAt && (
-            <>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="font-medium text-muted-foreground">
-                    Completed At
+            {startedAt && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
+                <Play className="h-4 w-4 text-amber-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                    Started
                   </p>
-                  <p>
-                    {format(new Date(completedAt), "MMM dd, yyyy 'at' hh:mm a")}
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 truncate">
+                    {format(new Date(startedAt), "MMM dd 'at' hh:mm a")}
                   </p>
                 </div>
               </div>
+            )}
 
-              <div className="flex items-start gap-2 text-sm">
-                <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="font-medium text-muted-foreground">Duration</p>
-                  <p>{duration || 0} minutes</p>
+            {completedAt && (
+              <>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-green-700 dark:text-green-300">
+                      Completed
+                    </p>
+                    <p className="text-sm font-semibold text-green-900 dark:text-green-100 truncate">
+                      {format(new Date(completedAt), "MMM dd 'at' hh:mm a")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <Clock className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Duration
+                    </p>
+                    <p className="text-sm font-semibold">{duration || 0} minutes</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Action Buttons */}
           {!isDropped && (
-            <div className="pt-4 space-y-2">
+            <div className="pt-2 space-y-2">
               {status === "SCHEDULED" && (
                 <Button
                   onClick={() => setIsStartDialogOpen(true)}
-                  className="w-full"
+                  className="w-full h-10"
+                  size="default"
                   disabled={
                     updateInterviewMutation.isPending ||
                     updateStatusMutation.isPending
@@ -230,7 +243,8 @@ export function InterviewManagementCard({
               {status === "IN_PROGRESS" && (
                 <Button
                   onClick={() => setIsCompleteDialogOpen(true)}
-                  className="w-full"
+                  className="w-full h-10 bg-green-600 hover:bg-green-700"
+                  size="default"
                   disabled={
                     updateInterviewMutation.isPending ||
                     updateStatusMutation.isPending
@@ -242,15 +256,15 @@ export function InterviewManagementCard({
               )}
 
               {status === "COMPLETED" && (
-                <div className="text-center text-sm text-muted-foreground py-2">
-                  ✓ Interview completed successfully
+                <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400 py-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="font-medium">Interview completed successfully</span>
                 </div>
               )}
 
               {status === "NOT_STARTED" && !scheduledDate && (
-                <div className="text-center text-sm text-muted-foreground py-2">
-                  Add a follow-up with "Answered - Agreed" to schedule the
-                  interview
+                <div className="text-center text-xs text-muted-foreground py-3 bg-muted/30 rounded-lg">
+                  Add a follow-up with "Answered - Agreed" to schedule
                 </div>
               )}
             </div>

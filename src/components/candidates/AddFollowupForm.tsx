@@ -53,19 +53,49 @@ interface AddFollowupFormProps {
   onSuccess?: () => void;
 }
 
-// Generate time slots from 9 AM to 6 PM
-const generateTimeSlots = () => {
+// Generate time slots from 9 AM to 8 PM
+const generateAllTimeSlots = () => {
   const slots: string[] = [];
-  for (let hour = 9; hour <= 18; hour++) {
+  for (let hour = 9; hour <= 20; hour++) {
     slots.push(`${hour.toString().padStart(2, "0")}:00`);
-    if (hour < 18) {
+    if (hour < 20) {
       slots.push(`${hour.toString().padStart(2, "0")}:30`);
     }
   }
   return slots;
 };
 
-const TIME_SLOTS = generateTimeSlots();
+// Filter time slots based on selected date
+const getAvailableTimeSlots = (selectedDate: Date | undefined) => {
+  const allSlots = generateAllTimeSlots();
+
+  if (!selectedDate) {
+    return allSlots; // Show all slots if no date selected
+  }
+
+  const today = new Date();
+  const isToday = selectedDate.toDateString() === today.toDateString();
+
+  if (!isToday) {
+    return allSlots; // Show all slots for future dates
+  }
+
+  // For today, filter out past time slots
+  const currentHour = today.getHours();
+  const currentMinute = today.getMinutes();
+
+  return allSlots.filter((slot) => {
+    const [slotHour, slotMinute] = slot.split(":").map(Number);
+
+    // If slot hour is greater than current hour, it's available
+    if (slotHour > currentHour) return true;
+
+    // If same hour, check minutes
+    if (slotHour === currentHour && slotMinute > currentMinute) return true;
+
+    return false;
+  });
+};
 
 export function AddFollowupForm({
   candidateId,
@@ -89,6 +119,9 @@ export function AddFollowupForm({
 
   const callStatus = form.watch("callStatus");
   const showAppointmentPicker = callStatus === CallStatus.ANSWERED_AGREED;
+
+  // Get available time slots based on selected date
+  const availableTimeSlots = getAvailableTimeSlots(selectedDate);
 
   // Disable if candidate is dropped or max attempts reached
   const isDropped = candidateStatus === OverallStatus.DROPPED;
@@ -296,29 +329,27 @@ export function AddFollowupForm({
                                 <p className="text-sm font-medium">
                                   {selectedDate
                                     ? format(selectedDate, "EEEE, d")
-                                    : "Select a date"}
+                                    : "Available Times"}
                                 </p>
                               </div>
-                              {selectedDate && (
-                                <div className="grid gap-1.5 px-5 max-sm:grid-cols-2">
-                                  {TIME_SLOTS.map((timeSlot) => (
-                                    <Button
-                                      key={timeSlot}
-                                      type="button"
-                                      variant={
-                                        selectedTime === timeSlot
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      size="sm"
-                                      className="w-full"
-                                      onClick={() => setSelectedTime(timeSlot)}
-                                    >
-                                      {timeSlot}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
+                              <div className="grid gap-1.5 px-5 max-sm:grid-cols-2">
+                                {availableTimeSlots.map((timeSlot: string) => (
+                                  <Button
+                                    key={timeSlot}
+                                    type="button"
+                                    variant={
+                                      selectedTime === timeSlot
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => setSelectedTime(timeSlot)}
+                                  >
+                                    {timeSlot}
+                                  </Button>
+                                ))}
+                              </div>
                             </div>
                           </ScrollArea>
                         </div>

@@ -121,41 +121,43 @@ export function OverallStatusCard({ candidate }: OverallStatusCardProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Overall Status</CardTitle>
-          <CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-3">
+          <CardTitle className="text-base font-semibold">
+            Manual Status Override
+          </CardTitle>
+          <CardDescription className="text-xs">
             {isCurrentlyDropped
-              ? "This candidate was dropped. You can restore them by changing the status below."
-              : "Status updates automatically based on follow-up calls and interview progress"}
+              ? "Candidate was dropped. You can restore by selecting a different status."
+              : "Status is automatically managed. Use this only for manual corrections."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-4">
           {isCurrentlyDropped && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                This candidate was dropped from the interview process. You can
-                restore them by selecting a different status below.
+            <Alert variant="destructive" className="py-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <AlertDescription className="text-xs">
+                Candidate was dropped. Select a different status to restore.
               </AlertDescription>
             </Alert>
           )}
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">
+
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <span className="text-xs font-medium text-muted-foreground">
               Current Status
-            </p>
+            </span>
             <Badge
               variant={getOverallStatusBadgeVariant(currentStatus)}
-              className="text-sm px-3 py-1"
+              className="text-xs px-2.5 py-0.5 font-medium"
             >
               {formatOverallStatus(currentStatus)}
             </Badge>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              Change Status (Manual Override)
-            </p>
+            <label className="text-xs font-medium text-muted-foreground">
+              Select New Status
+            </label>
             <Select onValueChange={handleStatusChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select new status" />
@@ -182,27 +184,11 @@ export function OverallStatusCard({ candidate }: OverallStatusCardProps) {
                 <SelectItem value={OverallStatus.DROPPED}>
                   {formatOverallStatus(OverallStatus.DROPPED)}
                 </SelectItem>
-                <SelectItem value={OverallStatus.REPORT_GENERATED}>
+                {/* <SelectItem value={OverallStatus.REPORT_GENERATED}>
                   {formatOverallStatus(OverallStatus.REPORT_GENERATED)}
-                </SelectItem>
+                </SelectItem> */}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="rounded-lg bg-muted p-3 text-sm">
-            <p className="font-medium mb-2">Typical Status Flow:</p>
-            <div className="text-muted-foreground space-y-1">
-              <p>1. NEW → Initial state</p>
-              <p>2. ASSIGNED → Interviewer assigned</p>
-              <p>3. ATTEMPTING → Follow-up calls in progress</p>
-              <p>4. SCHEDULED → Interview scheduled</p>
-              <p>5. IN_PROGRESS → Interview in progress</p>
-              <p>6. INTERVIEWED → Interview completed</p>
-              <p>7. REPORT_GENERATED → AI report ready</p>
-              <p className="text-destructive">
-                DROPPED → Candidate dropped out
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
