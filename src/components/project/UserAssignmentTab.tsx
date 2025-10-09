@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -105,7 +111,8 @@ export function UserAssignmentTab({
         },
         onError: (error) => {
           toast.error(`Failed to update ${title.toLowerCase()}`, {
-            description: error instanceof Error ? error.message : "An error occurred",
+            description:
+              error instanceof Error ? error.message : "An error occurred",
           });
         },
       }
@@ -147,7 +154,8 @@ export function UserAssignmentTab({
 
           {/* Debug info */}
           <div className="text-xs text-muted-foreground">
-            Total users loaded: {allUserOptions.length} | Currently selected: {selectedUsers.length}
+            Total users loaded: {allUserOptions.length} | Currently selected:{" "}
+            {selectedUsers.length}
           </div>
 
           {/* Save Button */}

@@ -51,7 +51,7 @@ export const API_ENDPOINTS = {
     ASSIGN_INTERVIEWER: "/candidate/assign-interviewer", // Body: { candidateIds, interviewerId, assignedBy }
     AUTO_ASSIGN_INTERVIEWERS: "/candidate/auto-assign-interviewers", // Body: { projectId, interviewerIds, assignedBy }
     UPDATE_FOLLOWUP: "/candidate/update-followup", // Body: { candidateId, attemptNumber, callStatus, notes?, scheduledInterviewDate?, attemptedBy }
-    UPDATE_INTERVIEW_STATUS: "/candidate/update-interview-status", // Body: { candidateId, status, scheduledDate?, startedAt?, completedAt?, interviewDurationMinutes?, questionnaireId? }
+    UPDATE_INTERVIEW_DETAILS: "/candidate/update-interview-details", // Body: { candidateId, scheduledDate?, startedAt?, completedAt?, interviewDurationMinutes?, questionnaireId?, answersSubmitted? }
     UPDATE_STATUS: "/candidate/update-status", // Body: { candidateId, overallStatus }
   },
 

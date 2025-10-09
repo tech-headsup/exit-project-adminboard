@@ -13,8 +13,8 @@ import {
   AutoAssignInterviewersResponse,
   UpdateFollowupRequest,
   UpdateFollowupResponse,
-  UpdateInterviewStatusRequest,
-  UpdateInterviewStatusResponse,
+  UpdateInterviewDetailsRequest,
+  UpdateInterviewDetailsResponse,
   UpdateCandidateStatusRequest,
   UpdateCandidateStatusResponse,
 } from "@/types/candidateTypes";
@@ -99,12 +99,12 @@ export const candidateService = {
     return response.data;
   },
 
-  // Update interview status
-  updateInterviewStatus: async (
-    params: UpdateInterviewStatusRequest
-  ): Promise<UpdateInterviewStatusResponse> => {
+  // Update interview details
+  updateInterviewDetails: async (
+    params: UpdateInterviewDetailsRequest
+  ): Promise<UpdateInterviewDetailsResponse> => {
     const response = await apiClient.post(
-      API_ENDPOINTS.CANDIDATES.UPDATE_INTERVIEW_STATUS,
+      API_ENDPOINTS.CANDIDATES.UPDATE_INTERVIEW_DETAILS,
       params
     );
     return response.data;

@@ -5,11 +5,12 @@ import { Pagination } from "./companyTypes";
 export enum OverallStatus {
   NEW = "NEW",
   ASSIGNED = "ASSIGNED",
+  ATTEMPTING = "ATTEMPTING",
   SCHEDULED = "SCHEDULED",
   IN_PROGRESS = "IN_PROGRESS",
   INTERVIEWED = "INTERVIEWED",
-  REPORT_GENERATED = "REPORT_GENERATED",
   DROPPED = "DROPPED",
+  REPORT_GENERATED = "REPORT_GENERATED",
 }
 
 export enum InterviewStatus {
@@ -17,13 +18,19 @@ export enum InterviewStatus {
   SCHEDULED = "SCHEDULED",
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
+  RESCHEDULED = "RESCHEDULED",
 }
 
 export enum CallStatus {
   ANSWERED_AGREED = "ANSWERED_AGREED",
-  ANSWERED_REFUSED = "ANSWERED_REFUSED",
+  ANSWERED_DECLINED = "ANSWERED_DECLINED",
   NOT_ANSWERING = "NOT_ANSWERING",
   WRONG_NUMBER = "WRONG_NUMBER",
+  SWITCHED_OFF = "SWITCHED_OFF",
+  BUSY = "BUSY",
+  CALLBACK_REQUESTED = "CALLBACK_REQUESTED",
 }
 
 export enum Gender {
@@ -49,11 +56,12 @@ export interface PopulatedUser {
 }
 
 export interface InterviewDetails {
-  status: InterviewStatus;
   scheduledDate?: Date;
   startedAt?: Date;
   completedAt?: Date;
   interviewDurationMinutes?: number;
+  questionnaireId?: string;
+  answersSubmitted?: boolean;
 }
 
 export interface FollowupAttempt {
@@ -62,7 +70,7 @@ export interface FollowupAttempt {
   callStatus: CallStatus;
   notes?: string;
   scheduledInterviewDate?: Date;
-  attemptedBy: string | PopulatedUser;
+  attemptedBy?: string | PopulatedUser;
 }
 
 export interface Candidate {
@@ -83,14 +91,19 @@ export interface Candidate {
   experienceInOrg: number;
   gender: Gender;
   resignationDate: Date;
-  quarter: Quarter;
+  quarters: string;
   lastWorkingDay: Date;
   overallStatus: OverallStatus;
   assignedInterviewer?: string | PopulatedUser;
   uploadedBy: string | PopulatedUser;
   assignedBy?: string | PopulatedUser;
+  assignedAt?: Date;
   interviewDetails: InterviewDetails;
   followupAttempts: FollowupAttempt[];
+  maxFollowupAttempts: number;
+  reportId?: string;
+  reportGeneratedAt?: Date;
+  uploadBatchId?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -98,22 +111,22 @@ export interface Candidate {
 
 // Excel upload candidate row
 export interface ExcelCandidateRow {
-  "Name": string;
+  Name: string;
   "Email ID": string;
   "Nature of Employment": string;
-  "Location": string;
+  Location: string;
   "Grade Level": string;
-  "Designation": string;
-  "Department": string;
+  Designation: string;
+  Department: string;
   "Reporting to": string;
   "Date of Joining": string | number; // Can be DD-MM-YYYY string or Excel serial number
-  "DOB": string | number; // Can be DD-MM-YYYY string or Excel serial number
-  "Age": number;
+  DOB: string | number; // Can be DD-MM-YYYY string or Excel serial number
+  Age: number;
   "Contact Number": string | number; // Can be string or number
   "Experience in Org": number;
-  "Gender": string;
+  Gender: string;
   "Resignation Date": string | number; // Can be DD-MM-YYYY string or Excel serial number
-  "Quarters": string;
+  Quarters: string;
   "Last Working Day": string | number; // Can be DD-MM-YYYY string or Excel serial number
 }
 
@@ -206,8 +219,8 @@ export interface UpdateFollowupResponse {
   data: Candidate;
 }
 
-// Update Interview Status Response - POST /api/candidate/update-interview-status
-export interface UpdateInterviewStatusResponse {
+// Update Interview Details Response - POST /api/candidate/update-interview-details
+export interface UpdateInterviewDetailsResponse {
   success: true;
   message: string;
   data: Candidate;
@@ -229,16 +242,16 @@ export interface UploadCandidatesRequest {
   candidates: ExcelCandidateRow[];
 }
 
-// Search filter operators
+// Search filter operators (MongoDB format)
 export interface SearchOperators {
-  eq?: any;
-  contains?: string;
-  in?: any[];
-  gte?: string | number;
-  lte?: string | number;
-  gt?: string | number;
-  lt?: string | number;
-  ne?: any;
+  $eq?: any;
+  $contains?: string;
+  $in?: any[];
+  $gte?: string | number;
+  $lte?: string | number;
+  $gt?: string | number;
+  $lt?: string | number;
+  $ne?: any;
 }
 
 // Search filters
@@ -294,15 +307,15 @@ export interface UpdateFollowupRequest {
   attemptedBy: string;
 }
 
-// Update Interview Status Request - POST /api/candidate/update-interview-status
-export interface UpdateInterviewStatusRequest {
+// Update Interview Details Request - POST /api/candidate/update-interview-details
+export interface UpdateInterviewDetailsRequest {
   candidateId: string;
-  status: InterviewStatus;
   scheduledDate?: string;
   startedAt?: string;
   completedAt?: string;
   interviewDurationMinutes?: number;
   questionnaireId?: string;
+  answersSubmitted?: boolean;
 }
 
 // Update Overall Status Request - POST /api/candidate/update-status

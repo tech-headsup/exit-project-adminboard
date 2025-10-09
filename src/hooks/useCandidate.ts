@@ -8,7 +8,7 @@ import {
   AssignInterviewerRequest,
   AutoAssignInterviewersRequest,
   UpdateFollowupRequest,
-  UpdateInterviewStatusRequest,
+  UpdateInterviewDetailsRequest,
   UpdateCandidateStatusRequest,
 } from "@/types/candidateTypes";
 
@@ -137,14 +137,14 @@ export const useUpdateFollowup = () => {
 };
 
 /**
- * Hook to update interview status
+ * Hook to update interview details
  */
-export const useUpdateInterviewStatus = () => {
+export const useUpdateInterviewDetails = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: UpdateInterviewStatusRequest) =>
-      candidateService.updateInterviewStatus(data),
+    mutationFn: (data: UpdateInterviewDetailsRequest) =>
+      candidateService.updateInterviewDetails(data),
     onSuccess: (response) => {
       // Invalidate specific candidate query
       queryClient.invalidateQueries({

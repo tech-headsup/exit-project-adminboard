@@ -17,7 +17,8 @@ export function CompanyLogoUpload({
   isUploadingImage,
   uploadError,
 }: CompanyLogoUploadProps) {
-  const hasPreview = (fileState.files.length > 0 && fileState.files[0].preview) || companyLogo;
+  const hasPreview =
+    (fileState.files.length > 0 && fileState.files[0].preview) || companyLogo;
 
   return (
     <div>
@@ -70,9 +71,7 @@ export function CompanyLogoUpload({
           )}
         </div>
         {fileState.errors.length > 0 && (
-          <p className="text-sm text-destructive mt-1">
-            {fileState.errors[0]}
-          </p>
+          <p className="text-sm text-destructive mt-1">{fileState.errors[0]}</p>
         )}
         {uploadError && (
           <p className="text-sm text-destructive mt-1">{uploadError}</p>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { useProjectById } from "@/hooks/useProject";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 import { CompanyDetailsTab } from "@/components/project/CompanyDetailsTab";
 import { ProjectDetailsTab } from "@/components/project/ProjectDetailsTab";
 import { UserAssignmentTab } from "@/components/project/UserAssignmentTab";
@@ -11,6 +13,8 @@ import { UserAssignmentTab } from "@/components/project/UserAssignmentTab";
 export default function ProjectDetails() {
   const router = useRouter();
   const projectId = router.query.id as string;
+
+  console.log("projectId---", projectId);
 
   // Fetch project data
   const { data: projectData, isLoading, error } = useProjectById(projectId);
@@ -53,13 +57,22 @@ export default function ProjectDetails() {
 
   return (
     <div className="container mx-auto py-6 px-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {project.projectName}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage project details
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {project.projectName}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            View and manage project details
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push(`/projects/${projectId}/candidates`)}
+          variant="default"
+        >
+          <Users className="-ms-1 me-2 opacity-60" size={16} />
+          View Candidates
+        </Button>
       </div>
 
       <Tabs defaultValue="company" className="w-full">

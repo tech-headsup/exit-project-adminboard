@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { FilePenLine, BriefcaseIcon } from "lucide-react";
+import { FilePenLine, BriefcaseIcon, Users } from "lucide-react";
 import { NextRouter } from "next/router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -246,19 +246,34 @@ export const getProjectColumns = (router: NextRouter): ColumnDef<Project>[] => [
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
     cell: ({ row }) => (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={(e) => {
-          e.stopPropagation();
-          router.push(`/projects/${row.original._id}`);
-        }}
-      >
-        <FilePenLine className="h-4 w-4" />
-        <span className="sr-only">Edit</span>
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/projects/${row.original._id}/candidates`);
+          }}
+          title="View Candidates"
+        >
+          <Users className="h-4 w-4" />
+          <span className="sr-only">View Candidates</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/projects/${row.original._id}`);
+          }}
+          title="Edit Project"
+        >
+          <FilePenLine className="h-4 w-4" />
+          <span className="sr-only">Edit</span>
+        </Button>
+      </div>
     ),
-    size: 70,
+    size: 100,
     enableHiding: false,
   },
 ];
