@@ -1,6 +1,6 @@
-import { GalleryVerticalEnd } from "lucide-react"
-
 import { LoginForm } from "@/components/login-form"
+import Image from "next/image"
+import {headsupCorp} from "../../public/headsupCorp.png"
 
 export default function LoginPage() {
   return (
@@ -8,10 +8,16 @@ export default function LoginPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-2 font-medium">
-            <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-              <GalleryVerticalEnd className="size-4" />
+            <div className="flex items-center justify-center">
+              <Image
+                src="/headsupLogoPNG.png"
+                alt="The Last Mile"
+                width={69}
+                height={69}
+                className="object-contain"
+              />
             </div>
-            Acme Inc.
+            <span className="text-lg font-semibold">The Last Mile</span>
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">
@@ -21,11 +27,15 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Image
+            src="/headsupCorp.png"
+            alt="Headsup Corporation"
+            width={400}
+            height={400}
+            className="object-contain opacity-95"
+          />
+        </div>
       </div>
     </div>
   )

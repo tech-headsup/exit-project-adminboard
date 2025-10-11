@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,18 +21,23 @@ import { useUpdateUser, useSearchUserById } from "@/hooks/useUsers";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { UserRole } from "@/types/userTypes";
+import { useFileUpload } from "@/hooks/use-file-upload";
+import { uploadImage } from "@/lib/company-utils";
+import { ProfilePictureUpload } from "@/components/account/ProfilePictureUpload";
 
 // Update Profile Schema
 const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  avatarURL: z.string().optional(),
 });
 
 type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
 
 export default function AccountPage() {
   const { user: currentUser, setUser } = useAuthContext();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Fetch full user details
   const { data: userDetailsData, isLoading } = useSearchUserById(
@@ -48,20 +53,82 @@ export default function AccountPage() {
   // Form
   const form = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
-    values: {
+    defaultValues: {
       firstName: userDetails?.firstName || "",
       lastName: userDetails?.lastName || "",
+      avatarURL: userDetails?.avatarURL || "",
     },
   });
+
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      setIsUploadingImage(true);
+      setUploadError(null);
+      return await uploadImage(file);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload image";
+      setUploadError(errorMessage);
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const [fileState, fileActions] = useFileUpload({
+    maxFiles: 1,
+    accept: "image/png, image/jpeg, image/jpg, image/webp",
+    maxSize: 1 * 1024 * 1024, // 1MB
+    onFilesChange: async (files) => {
+      if (files.length > 0) {
+        const fileWithPreview = files[0];
+        if (fileWithPreview.preview) {
+          // Show preview immediately
+          form.setValue("avatarURL", fileWithPreview.preview);
+        }
+
+        // Upload the actual file to backend (only if it's a File, not FileMetadata)
+        if (fileWithPreview.file instanceof File) {
+          const uploadedUrl = await handleImageUpload(fileWithPreview.file);
+          if (uploadedUrl) {
+            // Replace preview with actual URL from backend
+            form.setValue("avatarURL", uploadedUrl);
+          }
+        }
+      } else {
+        form.setValue("avatarURL", "");
+      }
+    },
+  });
+
+  // Reset form when userDetails loads
+  useEffect(() => {
+    if (userDetails) {
+      form.reset({
+        firstName: userDetails.firstName || "",
+        lastName: userDetails.lastName || "",
+        avatarURL: userDetails.avatarURL || "",
+      });
+    }
+  }, [userDetails, form]);
 
   const onSubmit = async (data: UpdateProfileFormData) => {
     if (!currentUser?._id) return;
 
     try {
-      await updateUserMutation.mutateAsync({
+      // Transform form data to match API requirements
+      const updatePayload = {
         userId: currentUser._id,
-        updateData: data,
-      });
+        updateData: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          avatarUrl: data.avatarURL, // API expects 'avatarUrl' not 'avatarURL'
+        },
+      };
+
+      console.log("Sending update payload:", updatePayload);
+
+      await updateUserMutation.mutateAsync(updatePayload);
 
       // Update user in context
       if (currentUser) {
@@ -69,12 +136,15 @@ export default function AccountPage() {
           ...currentUser,
           firstName: data.firstName,
           lastName: data.lastName,
+          avatarURL: data.avatarURL,
         });
       }
 
       toast.success("Profile updated successfully");
-      setIsEditing(false);
+      // Clear file state after successful update
+      fileActions.clearFiles();
     } catch (error: any) {
+      console.error("Failed to update user:", error);
       toast.error(error?.response?.data?.message || "Failed to update profile");
     }
   };
@@ -123,13 +193,25 @@ export default function AccountPage() {
             <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Profile Picture Upload */}
+              <ProfilePictureUpload
+                fileState={fileState}
+                fileActions={fileActions}
+                avatarURL={form.watch("avatarURL")}
+                isUploadingImage={isUploadingImage}
+                uploadError={uploadError}
+                firstName={userDetails.firstName}
+                lastName={userDetails.lastName}
+              />
+
+              <Separator />
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="firstName">First Name</Label>
                   <Input
                     id="firstName"
-                    disabled={!isEditing}
                     {...form.register("firstName")}
                   />
                   {form.formState.errors.firstName && (
@@ -142,7 +224,6 @@ export default function AccountPage() {
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
-                    disabled={!isEditing}
                     {...form.register("lastName")}
                   />
                   {form.formState.errors.lastName && (
@@ -154,32 +235,15 @@ export default function AccountPage() {
               </div>
 
               <div className="flex gap-2">
-                {!isEditing ? (
-                  <Button type="button" onClick={() => setIsEditing(true)}>
-                    Edit Profile
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      type="submit"
-                      disabled={updateUserMutation.isPending}
-                    >
-                      {updateUserMutation.isPending
-                        ? "Saving..."
-                        : "Save Changes"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        form.reset();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                )}
+                <Button
+                  type="submit"
+                  disabled={updateUserMutation.isPending || isUploadingImage}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {updateUserMutation.isPending
+                    ? "Updating Profile..."
+                    : "Update Profile"}
+                </Button>
               </div>
             </form>
           </CardContent>

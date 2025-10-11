@@ -13,11 +13,15 @@ import {
 } from "./ui/breadcrumb";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useBreadcrumbs } from "@/lib/breadcrumb-utils";
+import Link from "next/link";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuthContext();
   const [mounted, setMounted] = useState(false);
+  const [showBreadcrumbs, setShowBreadcrumbs] = useState(false);
+  const breadcrumbs = useBreadcrumbs();
 
   // Pages that don't require authentication
   const publicPages = ["/login"];
@@ -30,6 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // Set mounted on client side only
   useEffect(() => {
     setMounted(true);
+    setShowBreadcrumbs(true);
   }, []);
 
   // Protection logic
@@ -87,20 +92,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
-            {/* <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Building Your Application
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb> */}
+            {showBreadcrumbs && (
+              <>
+                <Separator orientation="vertical" className="mr-2 h-4" />
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    {breadcrumbs.map((breadcrumb, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                        <BreadcrumbItem className="hidden md:block">
+                          {breadcrumb.href ? (
+                            <BreadcrumbLink asChild>
+                              <Link href={breadcrumb.href}>{breadcrumb.label}</Link>
+                            </BreadcrumbLink>
+                          ) : (
+                            <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                          )}
+                        </BreadcrumbItem>
+                      </div>
+                    ))}
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </>
+            )}
           </div>
         </header>
         {children}
