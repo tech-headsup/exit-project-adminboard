@@ -16,6 +16,8 @@ import {
 import { z } from "zod";
 import { CompaniesTable } from "@/components/companies/CompaniesTable";
 import { useCompanies } from "@/hooks/useCompany";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function CompaniesTableComponent() {
   const router = useRouter();
@@ -111,11 +113,20 @@ export default function CompaniesTableComponent() {
 
   return (
     <div className="m-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
-        <p className="text-muted-foreground">
-          Manage your client companies and their information
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+          <p className="text-muted-foreground">
+            Manage your client companies and their information
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push("/companies/create")}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Company
+        </Button>
       </div>
 
       <CompaniesTable
