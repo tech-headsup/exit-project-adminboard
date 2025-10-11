@@ -61,7 +61,7 @@ function Candidates() {
       sorting.forEach((s) => {
         // Handle nested field for interview status
         if (s.id === "interviewDetails.status") {
-          sort["interviewDetails.status" as any] = s.desc ? -1 : 1;
+          sort["interviewDetails.status"] = s.desc ? -1 : 1;
         } else {
           sort[s.id as keyof Candidate] = s.desc ? -1 : 1;
         }
@@ -83,7 +83,7 @@ function Candidates() {
 
     // Filter by interview status
     if (interviewStatusFilter.length > 0) {
-      search["interviewDetails.status" as any] = { $in: interviewStatusFilter };
+      search["interviewDetails.status"] = { $in: interviewStatusFilter };
     }
 
     return { page, limit, search, sort };
@@ -186,7 +186,10 @@ function Candidates() {
             { label: "Attempting", value: OverallStatus.ATTEMPTING },
             { label: "Scheduled", value: OverallStatus.SCHEDULED },
             { label: "Interviewed", value: OverallStatus.INTERVIEWED },
-            { label: "Report Generated", value: OverallStatus.REPORT_GENERATED },
+            {
+              label: "Report Generated",
+              value: OverallStatus.REPORT_GENERATED,
+            },
             { label: "Dropped", value: OverallStatus.DROPPED },
           ],
         },

@@ -219,7 +219,9 @@ export const getCandidateColumns = (
   {
     header: "Designation",
     accessorKey: "designation",
-    cell: ({ row }) => <div className="text-sm">{row.original.designation}</div>,
+    cell: ({ row }) => (
+      <div className="text-sm">{row.original.designation}</div>
+    ),
     size: 150,
   },
   {
@@ -235,7 +237,9 @@ export const getCandidateColumns = (
       const interviewer = row.original.assignedInterviewer;
 
       if (!interviewer) {
-        return <span className="text-muted-foreground text-sm">Unassigned</span>;
+        return (
+          <span className="text-muted-foreground text-sm">Unassigned</span>
+        );
       }
 
       if (typeof interviewer === "object") {
@@ -268,7 +272,18 @@ export const getCandidateColumns = (
     header: "Interview Status",
     accessorKey: "interviewDetails.status",
     cell: ({ row }) => {
-      const status = row.original.interviewDetails.status;
+      const interviewDetails = row.original.interviewDetails;
+
+      // Derive status from interview details
+      const getInterviewStatus = (): InterviewStatus => {
+        if (interviewDetails?.completedAt) return InterviewStatus.COMPLETED;
+        if (interviewDetails?.startedAt) return InterviewStatus.IN_PROGRESS;
+        if (interviewDetails?.scheduledDate) return InterviewStatus.SCHEDULED;
+        return InterviewStatus.NOT_STARTED;
+      };
+
+      const status = getInterviewStatus();
+
       return (
         <Badge variant={getInterviewStatusBadgeVariant(status)}>
           {formatInterviewStatus(status)}
@@ -284,7 +299,9 @@ export const getCandidateColumns = (
       const attempts = row.original.followupAttempts;
 
       if (!attempts || attempts.length === 0) {
-        return <span className="text-muted-foreground text-sm">No attempts</span>;
+        return (
+          <span className="text-muted-foreground text-sm">No attempts</span>
+        );
       }
 
       const lastAttempt = attempts[attempts.length - 1];

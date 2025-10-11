@@ -258,11 +258,15 @@ export interface SearchOperators {
 // Search filters
 export type CandidateSearchFilters = {
   [K in keyof Partial<Candidate>]?: SearchOperators | string;
+} & {
+  [key: string]: SearchOperators | string | any; // Allow nested paths like "interviewDetails.status"
 };
 
 // Sort options
 export type CandidateSortOptions = {
   [K in keyof Partial<Candidate>]?: 1 | -1;
+} & {
+  [key: string]: 1 | -1; // Allow nested paths like "interviewDetails.status"
 };
 
 // Get Candidates Request - POST /api/candidate/get

@@ -151,8 +151,8 @@ export function InterviewManagementCard({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Schedule interview by adding a follow-up with "Answered -
-                Agreed" status. The interview date will auto-sync here.
+                Schedule interview by adding a follow-up with &quot;Answered -
+                Agreed&quot; status. The interview date will auto-sync here.
               </AlertDescription>
             </Alert>
           )}
@@ -175,7 +175,10 @@ export function InterviewManagementCard({
                 </p>
                 <p className="text-sm font-semibold truncate">
                   {scheduledDate
-                    ? format(new Date(scheduledDate), "MMM dd, yyyy 'at' hh:mm a")
+                    ? format(
+                        new Date(scheduledDate),
+                        "MMM dd, yyyy 'at' hh:mm a"
+                      )
                     : "Not scheduled"}
                 </p>
               </div>
@@ -215,7 +218,9 @@ export function InterviewManagementCard({
                     <p className="text-xs font-medium text-muted-foreground">
                       Duration
                     </p>
-                    <p className="text-sm font-semibold">{duration || 0} minutes</p>
+                    <p className="text-sm font-semibold">
+                      {duration || 0} minutes
+                    </p>
                   </div>
                 </div>
               </>
@@ -258,13 +263,15 @@ export function InterviewManagementCard({
               {status === "COMPLETED" && (
                 <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400 py-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                   <CheckCircle2 className="h-4 w-4" />
-                  <span className="font-medium">Interview completed successfully</span>
+                  <span className="font-medium">
+                    Interview completed successfully
+                  </span>
                 </div>
               )}
 
               {status === "NOT_STARTED" && !scheduledDate && (
                 <div className="text-center text-xs text-muted-foreground py-3 bg-muted/30 rounded-lg">
-                  Add a follow-up with "Answered - Agreed" to schedule
+                  Add a follow-up with &quot;Answered - Agreed&quot; to schedule
                 </div>
               )}
             </div>

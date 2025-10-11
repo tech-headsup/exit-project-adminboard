@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/router";
-import { ArrowLeft, UserCircle2, Phone, ClipboardList, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  UserCircle2,
+  Phone,
+  ClipboardList,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -76,7 +82,7 @@ export default function CandidateDetails() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold">Candidate Not Found</h2>
           <p className="text-muted-foreground mt-2">
-            The candidate you're looking for doesn't exist.
+            The candidate you&apos;re looking for doesn&apos;t exist.
           </p>
         </div>
       </div>
@@ -87,7 +93,8 @@ export default function CandidateDetails() {
 
   // Calculate badge counts
   const followupCount = candidate.followupAttempts?.length || 0;
-  const hasAnswersSubmitted = candidate.interviewDetails?.answersSubmitted || false;
+  const hasAnswersSubmitted =
+    candidate.interviewDetails?.answersSubmitted || false;
   const hasReport = !!candidate.reportId;
 
   return (

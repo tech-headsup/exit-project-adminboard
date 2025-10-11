@@ -70,11 +70,24 @@ const formatOverallStatus = (status: OverallStatus): string => {
     [OverallStatus.ASSIGNED]: "Assigned",
     [OverallStatus.ATTEMPTING]: "Attempting",
     [OverallStatus.SCHEDULED]: "Scheduled",
+    [OverallStatus.IN_PROGRESS]: "In Progress",
     [OverallStatus.INTERVIEWED]: "Interviewed",
     [OverallStatus.REPORT_GENERATED]: "Report Generated",
     [OverallStatus.DROPPED]: "Dropped",
   };
   return statusMap[status] || status;
+};
+
+/**
+ * Compute interview status from interview details
+ */
+const getInterviewStatus = (
+  interviewDetails: Candidate["interviewDetails"]
+): InterviewStatus => {
+  if (interviewDetails?.completedAt) return InterviewStatus.COMPLETED;
+  if (interviewDetails?.startedAt) return InterviewStatus.IN_PROGRESS;
+  if (interviewDetails?.scheduledDate) return InterviewStatus.SCHEDULED;
+  return InterviewStatus.NOT_STARTED;
 };
 
 /**
@@ -108,7 +121,9 @@ const formatGender = (gender: Gender): string => {
 /**
  * Get user display name
  */
-const getUserDisplayName = (user: string | PopulatedUser | undefined): string => {
+const getUserDisplayName = (
+  user: string | PopulatedUser | undefined
+): string => {
   if (!user) return "Not Assigned";
   if (typeof user === "string") return "Unknown";
   return `${user.firstName} ${user.lastName}`;
@@ -117,7 +132,13 @@ const getUserDisplayName = (user: string | PopulatedUser | undefined): string =>
 /**
  * Field row component for consistent display
  */
-const FieldRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+const FieldRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
   <div className="flex flex-col gap-1">
     <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
     <dd className="text-sm">{value || "-"}</dd>
@@ -195,13 +216,16 @@ export function ProfileDetailsTab({ candidate }: ProfileDetailsTabProps) {
           <dl className="grid gap-4">
             <FieldRow
               label="Resignation Date"
-              value={format(new Date(candidate.resignationDate), "MMM dd, yyyy")}
+              value={format(
+                new Date(candidate.resignationDate),
+                "MMM dd, yyyy"
+              )}
             />
             <FieldRow
               label="Last Working Day"
               value={format(new Date(candidate.lastWorkingDay), "MMM dd, yyyy")}
             />
-            <FieldRow label="Quarter" value={candidate.quarter} />
+            <FieldRow label="Quarter" value={candidate.quarters} />
           </dl>
         </CardContent>
       </Card>
@@ -227,7 +251,10 @@ export function ProfileDetailsTab({ candidate }: ProfileDetailsTabProps) {
             />
             <FieldRow
               label="Created At"
-              value={format(new Date(candidate.createdAt), "MMM dd, yyyy HH:mm")}
+              value={format(
+                new Date(candidate.createdAt),
+                "MMM dd, yyyy HH:mm"
+              )}
             />
           </dl>
         </CardContent>
@@ -243,7 +270,11 @@ export function ProfileDetailsTab({ candidate }: ProfileDetailsTabProps) {
             <FieldRow
               label="Overall Status"
               value={
-                <Badge variant={getOverallStatusBadgeVariant(candidate.overallStatus)}>
+                <Badge
+                  variant={getOverallStatusBadgeVariant(
+                    candidate.overallStatus
+                  )}
+                >
                   {formatOverallStatus(candidate.overallStatus)}
                 </Badge>
               }
@@ -253,10 +284,12 @@ export function ProfileDetailsTab({ candidate }: ProfileDetailsTabProps) {
               value={
                 <Badge
                   variant={getInterviewStatusBadgeVariant(
-                    candidate.interviewDetails.status
+                    getInterviewStatus(candidate.interviewDetails)
                   )}
                 >
-                  {formatInterviewStatus(candidate.interviewDetails.status)}
+                  {formatInterviewStatus(
+                    getInterviewStatus(candidate.interviewDetails)
+                  )}
                 </Badge>
               }
             />
@@ -272,7 +305,9 @@ export function ProfileDetailsTab({ candidate }: ProfileDetailsTabProps) {
             <FieldRow
               label="Active Status"
               value={
-                <Badge variant={candidate.isActive ? "secondary" : "destructive"}>
+                <Badge
+                  variant={candidate.isActive ? "secondary" : "destructive"}
+                >
                   {candidate.isActive ? "Active" : "Inactive"}
                 </Badge>
               }

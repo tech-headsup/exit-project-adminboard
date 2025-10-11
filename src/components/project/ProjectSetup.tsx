@@ -97,7 +97,10 @@ export function ProjectSetup({ control }: ProjectSetupProps) {
               <FormItem>
                 <FormLabel>Project Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Q1 Exit Interview 2024" {...field} />
+                  <Input
+                    placeholder="e.g., Q1 Exit Interview 2024"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -191,7 +194,7 @@ export function ProjectSetup({ control }: ProjectSetupProps) {
                         key={questionnaire._id}
                         value={questionnaire._id}
                       >
-                        {questionnaire.questionnaireName}
+                        {questionnaire.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
