@@ -3,7 +3,6 @@
 import { useAuthContext } from "@/contexts/AuthContext";
 import { FollowupTimeline } from "./FollowupTimeline";
 import { AddFollowupForm } from "./AddFollowupForm";
-import { InterviewManagementCard } from "./InterviewManagementCard";
 import { OverallStatusCard } from "./OverallStatusCard";
 import { Candidate } from "@/types/candidateTypes";
 
@@ -47,18 +46,8 @@ export function FollowupsInterviewTab({
           </div>
         </div>
 
-        {/* Right Column: Interview Management & Overall Status */}
+        {/* Right Column: Overall Status */}
         <div className="space-y-5">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-1 w-1 rounded-full bg-primary" />
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Interview Status
-              </h3>
-            </div>
-            <InterviewManagementCard candidate={candidate} />
-          </div>
-
           <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="h-1 w-1 rounded-full bg-amber-500" />

@@ -181,3 +181,27 @@ export interface SubmitBulkAnswersRequest {
   answers: AnswerInput[]; // Required: array of answers
   submittedBy: string; // Required: Interviewer ID
 }
+
+// ==================== INTERVIEW STATE TYPES (for Zustand) ====================
+
+// Interview answer stored in Zustand (keyed by themeId_questionId or themeId for theme-level notes)
+export interface InterviewAnswer {
+  themeId: string;
+  themeName: string;
+  questionId: string | null; // null for theme-level notes only
+  questionText: string;
+  questionType: QuestionType | "";
+  answer: AnswerValue | "";
+  notes: string;
+  answeredAt?: string; // Timestamp when answered
+}
+
+// Interview state stored in Zustand + localStorage
+export interface InterviewState {
+  candidateId: string;
+  projectId: string;
+  questionnaireId: string;
+  startedAt: string; // ISO timestamp
+  answers: Record<string, InterviewAnswer>; // Key: `${themeId}_${questionId}` or `${themeId}_notes`
+  currentThemeId: string | null; // Currently active theme
+}

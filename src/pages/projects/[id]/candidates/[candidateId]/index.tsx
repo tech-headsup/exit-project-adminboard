@@ -15,16 +15,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCandidateById } from "@/hooks/useCandidate";
 import { ProfileDetailsTab } from "@/components/candidates/ProfileDetailsTab";
 import { FollowupsInterviewTab } from "@/components/candidates/FollowupsInterviewTab";
+import { InterviewQnATab } from "@/components/interview/InterviewQnATab";
 
 export default function CandidateDetails() {
   const router = useRouter();
   const { id: projectId, candidateId } = router.query;
 
   // Fetch candidate data
-  const { data, isLoading, error } = useCandidateById(
+  const { data, isLoading, error, refetch } = useCandidateById(
     candidateId as string,
     !!candidateId
   );
+
+  // Handle interview completion
+  const handleInterviewComplete = () => {
+    refetch();
+  };
 
   // Loading state
   if (isLoading) {
@@ -90,6 +96,8 @@ export default function CandidateDetails() {
   }
 
   const candidate = data.data;
+
+  console.log("Candidate Data:", candidate);
 
   // Calculate badge counts
   const followupCount = candidate.followupAttempts?.length || 0;
@@ -197,12 +205,29 @@ export default function CandidateDetails() {
 
         {/* Q&A Form Tab */}
         <TabsContent value="qna">
-          <div className="rounded-lg border border-dashed p-12 text-center">
-            <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground mt-4">
-              Q&A Form will be implemented here.
-            </p>
-          </div>
+          <InterviewQnATab
+            candidateId={candidate._id}
+            projectId={candidate.projectId}
+            questionnaireId={candidate.interviewDetails?.questionnaireId || ""}
+            scheduledDate={candidate.interviewDetails?.scheduledDate}
+            startedAt={candidate.interviewDetails?.startedAt}
+            completedAt={candidate.interviewDetails?.completedAt}
+            interviewDurationMinutes={candidate.interviewDetails?.interviewDurationMinutes}
+            answersSubmitted={candidate.interviewDetails?.answersSubmitted}
+            interviewerId={
+              typeof candidate.assignedInterviewer === "string"
+                ? candidate.assignedInterviewer
+                : candidate.assignedInterviewer?._id || ""
+            }
+            interviewerName={
+              typeof candidate.assignedInterviewer === "string"
+                ? undefined
+                : candidate.assignedInterviewer
+                ? `${candidate.assignedInterviewer.firstName} ${candidate.assignedInterviewer.lastName}`
+                : undefined
+            }
+            onInterviewComplete={handleInterviewComplete}
+          />
         </TabsContent>
 
         {/* Report Tab */}

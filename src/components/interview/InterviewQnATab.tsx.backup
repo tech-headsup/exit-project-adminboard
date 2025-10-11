@@ -1,0 +1,472 @@
+import { useState, useEffect } from "react";
+import { Loader2, CheckCircle2, Circle, PlayCircle, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { useInterviewStore } from "@/stores/interviewStore";
+import { candidateService } from "@/api/services/candidateService";
+import { questionnaireService } from "@/api/services/questionnaireService";
+import { answerService } from "@/api/services/answerService";
+import { QuestionRenderer } from "./QuestionRenderer";
+import { Questionnaire, Theme } from "@/types/questionnaireTypes";
+import { AnswerInput } from "@/types/answerTypes";
+
+interface InterviewQnATabProps {
+  candidateId: string;
+  projectId: string;
+  questionnaireId: string;
+  interviewStarted: boolean;
+  interviewerId: string; // Add interviewer ID prop
+  onInterviewComplete: () => void;
+}
+
+export function InterviewQnATab({
+  candidateId,
+  projectId,
+  questionnaireId,
+  interviewStarted,
+  interviewerId,
+  onInterviewComplete,
+}: InterviewQnATabProps) {
+  console.log("InterviewQnATab props:", {
+    candidateId,
+    projectId,
+    questionnaireId,
+    interviewStarted,
+    interviewerId,
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(
+    null
+  );
+  const [currentThemeId, setCurrentThemeId] = useState<string>("");
+  const [localInterviewStarted, setLocalInterviewStarted] =
+    useState(interviewStarted);
+
+  const {
+    initializeInterview,
+    setAnswer,
+    getAnswer,
+    clearInterview,
+    answers,
+    startedAt,
+  } = useInterviewStore();
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setLocalInterviewStarted(interviewStarted);
+  }, [interviewStarted]);
+
+  // Load questionnaire
+  useEffect(() => {
+    const loadQuestionnaire = async () => {
+      try {
+        setLoading(true);
+        console.log("Loading questionnaire with ID:", questionnaireId);
+        const response = await questionnaireService.getQuestionnaire({
+          id: questionnaireId,
+        });
+        console.log("Questionnaire loaded:", response.data);
+        setQuestionnaire(response.data);
+
+        // Set first theme as current
+        if (response.data.themes.length > 0) {
+          setCurrentThemeId(response.data.themes[0].themeId);
+        }
+      } catch (error) {
+        console.error("Failed to load questionnaire:", error);
+        toast.error("Failed to load questionnaire");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    console.log("Interview state check:", {
+      questionnaireId,
+      localInterviewStarted,
+      shouldLoad: questionnaireId && localInterviewStarted,
+    });
+
+    if (questionnaireId && localInterviewStarted) {
+      loadQuestionnaire();
+    }
+  }, [questionnaireId, localInterviewStarted]);
+
+  // Start interview
+  const handleStartInterview = async () => {
+    try {
+      setLoading(true);
+      console.log("Starting interview for candidate:", candidateId);
+
+      // Call API to start interview
+      const startedAtTime = new Date().toISOString();
+      const response = await candidateService.updateInterviewDetails({
+        candidateId,
+        startedAt: startedAtTime,
+      });
+      console.log("Interview started API response:", response);
+
+      // Initialize Zustand store
+      initializeInterview(
+        candidateId,
+        projectId,
+        questionnaireId,
+        startedAtTime
+      );
+      console.log("Zustand store initialized");
+
+      // Update local state to show interview UI
+      setLocalInterviewStarted(true);
+      console.log("Local interview state updated to true");
+
+      toast.success("Interview started!");
+    } catch (error) {
+      console.error("Failed to start interview:", error);
+      toast.error("Failed to start interview");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle answer change - directly save without debounce (causes focus issues)
+  const handleAnswerChange = (
+    themeId: string,
+    themeName: string,
+    questionId: string | null,
+    questionText: string,
+    questionType: any,
+    answer: any
+  ) => {
+    // Directly set answer without debounce
+    setAnswer(
+      themeId,
+      themeName,
+      questionId,
+      questionText,
+      questionType,
+      answer,
+      ""
+    );
+  };
+
+  // Handle theme notes change - directly save without debounce
+  const handleThemeNotesChange = (
+    themeId: string,
+    themeName: string,
+    notes: string
+  ) => {
+    // Directly set theme notes
+    setAnswer(themeId, themeName, null, "", "", "", notes);
+  };
+
+  // Calculate theme progress
+  const getThemeProgress = (theme: Theme) => {
+    const themeAnswers = Object.values(answers).filter(
+      (a) => a.themeId === theme.themeId && a.questionId !== null
+    );
+
+    const answered = themeAnswers.filter((a) => a.answer !== "").length;
+
+    // At least one answer or theme notes required
+    const themeNotes = getAnswer(theme.themeId, null);
+    const hasThemeNotes = themeNotes && themeNotes.notes !== "";
+    const hasQuestionAnswers = themeAnswers.some((a) => a.answer !== "");
+
+    return {
+      answered,
+      total: theme.questions.length,
+      isComplete: hasThemeNotes || hasQuestionAnswers,
+    };
+  };
+
+  // Validate before submission
+  const validateSubmission = (): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (!questionnaire) {
+      errors.push("Questionnaire not loaded");
+      return { valid: false, errors };
+    }
+
+    // Check each theme
+    for (const theme of questionnaire.themes) {
+      const progress = getThemeProgress(theme);
+      if (!progress.isComplete) {
+        errors.push(
+          `Theme "${theme.themeName}" is incomplete. Please answer at least one question or add theme notes.`
+        );
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  };
+
+  // Submit interview
+  const handleSubmitInterview = async () => {
+    // Validate
+    const validation = validateSubmission();
+    if (!validation.valid) {
+      toast.error(validation.errors[0]);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      // Calculate duration
+      const completedAt = new Date();
+      const startTime = new Date(startedAt);
+      const durationMinutes = Math.round(
+        (completedAt.getTime() - startTime.getTime()) / 60000
+      );
+
+      // Prepare answers - map InterviewAnswer to AnswerInput
+      // Filter out empty answers and notes
+      const answersArray: AnswerInput[] = Object.values(answers)
+        .filter((a) => a.answer !== "" || a.notes !== "")
+        .map((a) => ({
+          themeId: a.themeId,
+          themeName: a.themeName,
+          questionId: a.questionId || undefined,
+          questionText: a.questionText || undefined,
+          questionType: a.questionType || undefined,
+          answer: a.answer !== "" ? a.answer : undefined,
+          notes: a.notes !== "" ? a.notes : undefined,
+        }));
+
+      console.log("Submitting answers:", answersArray);
+      console.log("Submitted by:", interviewerId);
+
+      // Submit to backend
+      const response = await answerService.submitInterviewAnswers({
+        candidateId,
+        projectId,
+        questionnaireId,
+        answers: answersArray,
+        submittedBy: interviewerId, // Use the interviewer ID from props
+        completedAt: completedAt.toISOString(),
+        interviewDurationMinutes: durationMinutes,
+      });
+
+      console.log("Submit response:", response);
+
+      // Clear store
+      clearInterview();
+
+      toast.success("Interview completed successfully!");
+
+      // Notify parent to refresh
+      onInterviewComplete();
+    } catch (error: any) {
+      console.error("Failed to submit interview:", error);
+      const errorMsg =
+        error?.response?.data?.error || "Failed to submit interview";
+      toast.error(errorMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Check if questionnaire is assigned
+  if (!questionnaireId) {
+    return (
+      <div className="rounded-lg border border-dashed p-12 text-center">
+        <PlayCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+        <h3 className="mt-4 text-lg font-semibold">
+          No Questionnaire Assigned
+        </h3>
+        <p className="text-muted-foreground mt-2">
+          A questionnaire must be assigned to this candidate before starting the
+          interview. Please assign a questionnaire from the Follow-ups &
+          Interview tab.
+        </p>
+      </div>
+    );
+  }
+
+  // Pre-interview state
+  if (!localInterviewStarted) {
+    return (
+      <div className="rounded-lg border border-dashed p-12 text-center">
+        <PlayCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+        <h3 className="mt-4 text-lg font-semibold">Start Interview</h3>
+        <p className="text-muted-foreground mt-2 mb-6">
+          Click the button below to begin the interview and load the
+          questionnaire.
+        </p>
+        <Button onClick={handleStartInterview} disabled={loading} size="lg">
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Starting...
+            </>
+          ) : (
+            <>
+              <PlayCircle className="mr-2 h-4 w-4" />
+              Start Interview
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading || !questionnaire) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Interview in progress
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b">
+        <div>
+          <h2 className="text-2xl font-bold">{questionnaire.name}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {questionnaire.themes.length} themes •{" "}
+            {questionnaire.themes.reduce(
+              (acc, t) => acc + t.questions.length,
+              0
+            )}{" "}
+            questions
+          </p>
+        </div>
+        <Button onClick={handleSubmitInterview} disabled={submitting} size="lg">
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Complete Interview
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Vertical Tabs Layout */}
+      <Tabs
+        value={currentThemeId}
+        onValueChange={setCurrentThemeId}
+        orientation="vertical"
+        className="w-full flex-row"
+      >
+        <TabsList className="flex-col h-fit">
+          {questionnaire.themes.map((theme) => {
+            const progress = getThemeProgress(theme);
+            return (
+              <TabsTrigger
+                key={theme.themeId}
+                value={theme.themeId}
+                className="w-full justify-start gap-2"
+              >
+                {progress.isComplete ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="flex-1 text-left">{theme.themeName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {progress.answered}/{progress.total}
+                </span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        <div className="grow rounded-md border">
+          {questionnaire.themes.map((theme) => (
+            <TabsContent
+              key={theme.themeId}
+              value={theme.themeId}
+              className="p-6 space-y-8"
+            >
+              {/* Theme Header */}
+              <div>
+                <h3 className="text-xl font-semibold">{theme.themeName}</h3>
+                {theme.themeDescription && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {theme.themeDescription}
+                  </p>
+                )}
+              </div>
+
+              {/* Questions */}
+              {theme.questions.map((question, idx) => {
+                const savedAnswer = getAnswer(
+                  theme.themeId,
+                  question.questionId
+                );
+                return (
+                  <div
+                    key={question.questionId}
+                    className="pb-6 border-b last:border-0"
+                  >
+                    <div className="mb-2 text-sm text-muted-foreground">
+                      Question {idx + 1} of {theme.questions.length}
+                    </div>
+                    <QuestionRenderer
+                      questionId={question.questionId}
+                      questionText={question.questionText}
+                      questionType={question.questionType}
+                      ratingScale={question.ratingScale || undefined}
+                      value={savedAnswer?.answer || ""}
+                      onChange={(answer) =>
+                        handleAnswerChange(
+                          theme.themeId,
+                          theme.themeName,
+                          question.questionId,
+                          question.questionText,
+                          question.questionType,
+                          answer
+                        )
+                      }
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Theme-level Notes */}
+              <div className="pt-4 border-t">
+                <Label
+                  htmlFor={`theme-notes-${theme.themeId}`}
+                  className="text-sm font-medium"
+                >
+                  General Theme Notes
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  Add general notes about this theme instead of answering
+                  individual questions
+                </p>
+                <Textarea
+                  id={`theme-notes-${theme.themeId}`}
+                  value={getAnswer(theme.themeId, null)?.notes || ""}
+                  onChange={(e) =>
+                    handleThemeNotesChange(
+                      theme.themeId,
+                      theme.themeName,
+                      e.target.value
+                    )
+                  }
+                  placeholder="Type general notes about this theme..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </TabsContent>
+          ))}
+        </div>
+      </Tabs>
+    </div>
+  );
+}
