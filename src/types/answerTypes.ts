@@ -27,6 +27,8 @@ export interface Answer {
   notes?: string; // Optional: can be empty if answer provided
   submittedAt: Date | string;
   submittedBy: string | PopulatedUser;
+  lastEditedAt?: Date | string; // Auto-updated on edits
+  isActive?: boolean; // For soft delete
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -95,6 +97,37 @@ export interface GetAnswersByProjectResponse {
   };
 }
 
+// Get Answer By ID Response - POST /api/v1/answer/search-by-id
+export interface GetAnswerByIdResponse {
+  success: true;
+  data: Answer;
+}
+
+// Update Answer Response - POST /api/v1/answer/update
+export interface UpdateAnswerResponse {
+  success: true;
+  message: string;
+  data: Answer;
+}
+
+// Delete Answer Response - POST /api/v1/answer/delete
+export interface DeleteAnswerResponse {
+  success: true;
+  message: string;
+  data?: Answer; // Returned on soft delete
+}
+
+// Submit Bulk Answers Response - POST /api/v1/answer/submit-bulk
+export interface SubmitBulkAnswersResponse {
+  success: true;
+  message: string;
+  data: {
+    totalAnswers: number;
+    inserted: number;
+    updated: number;
+  };
+}
+
 // ==================== REQUEST TYPES ====================
 
 // Submit Interview Answers Request - POST /api/v1/answer/submit-interview-answers
@@ -120,4 +153,31 @@ export interface GetAnswersByProjectRequest {
   page?: number; // Optional, default: 1
   limit?: number; // Optional, default: 100
   themeId?: string; // Optional: filter by theme
+}
+
+// Get Answer By ID Request - POST /api/v1/answer/search-by-id
+export interface GetAnswerByIdRequest {
+  id: string; // Required: Answer ObjectId
+}
+
+// Update Answer Request - POST /api/v1/answer/update
+export interface UpdateAnswerRequest {
+  id: string; // Required: Answer ObjectId
+  answer?: AnswerValue; // Optional: New answer value
+  notes?: string; // Optional: New notes
+}
+
+// Delete Answer Request - POST /api/v1/answer/delete
+export interface DeleteAnswerRequest {
+  id: string; // Required: Answer ObjectId
+  hardDelete?: boolean; // Optional: Permanent delete (default: false = soft delete)
+}
+
+// Submit Bulk Answers Request - POST /api/v1/answer/submit-bulk
+export interface SubmitBulkAnswersRequest {
+  candidateId: string; // Required
+  projectId: string; // Required
+  questionnaireId: string; // Required
+  answers: AnswerInput[]; // Required: array of answers
+  submittedBy: string; // Required: Interviewer ID
 }

@@ -4,7 +4,9 @@ import { queryKeys } from "@/utils/queryKeys";
 import {
   CreateQuestionnaireRequest,
   SearchQuestionnairesRequest,
+  UpdateQuestionnaireRequest,
   DuplicateQuestionnaireRequest,
+  DeleteQuestionnaireRequest,
   // Legacy types for backward compatibility
   GetQuestionnairesRequest,
   GetGlobalTemplatesRequest,
@@ -69,15 +71,43 @@ export const useCreateQuestionnaire = () => {
 };
 
 /**
- * Hook to delete a questionnaire
+ * Hook to update a questionnaire
+ * WARNING: Updating themes replaces ALL themes (not partial update)
+ */
+export const useUpdateQuestionnaire = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateQuestionnaireRequest) =>
+      questionnaireService.updateQuestionnaire(data),
+    onSuccess: (response) => {
+      // Invalidate specific questionnaire query
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.questionnaires.detail(response.data._id),
+      });
+      // Invalidate all questionnaire list queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.questionnaires.all });
+    },
+  });
+};
+
+/**
+ * Hook to delete a questionnaire (soft delete by default)
+ * Pass hardDelete: true in params for permanent deletion
  */
 export const useDeleteQuestionnaire = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
-      questionnaireService.deleteQuestionnaire({ id }),
-    onSuccess: (_, questionnaireId) => {
+    mutationFn: (params: DeleteQuestionnaireRequest | string) => {
+      // Support both string (legacy) and object params
+      const requestParams = typeof params === 'string'
+        ? { id: params }
+        : params;
+      return questionnaireService.deleteQuestionnaire(requestParams);
+    },
+    onSuccess: (_, params) => {
+      const questionnaireId = typeof params === 'string' ? params : params.id;
       // Remove from cache
       queryClient.removeQueries({
         queryKey: queryKeys.questionnaires.detail(questionnaireId),

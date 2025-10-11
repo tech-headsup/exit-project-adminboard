@@ -5,6 +5,8 @@ import {
   GetQuestionnaireResponse,
   SearchQuestionnairesRequest,
   SearchQuestionnairesResponse,
+  UpdateQuestionnaireRequest,
+  UpdateQuestionnaireResponse,
   DeleteQuestionnaireRequest,
   DeleteQuestionnaireResponse,
   DuplicateQuestionnaireRequest,
@@ -52,7 +54,18 @@ export const questionnaireService = {
     return response.data;
   },
 
-  // Delete a questionnaire
+  // Update a questionnaire
+  updateQuestionnaire: async (
+    params: UpdateQuestionnaireRequest
+  ): Promise<UpdateQuestionnaireResponse> => {
+    const response = await apiClient.post(
+      API_ENDPOINTS.QUESTIONNAIRES.UPDATE,
+      params
+    );
+    return response.data;
+  },
+
+  // Delete a questionnaire (soft delete by default, hard delete if hardDelete: true)
   deleteQuestionnaire: async (
     params: DeleteQuestionnaireRequest
   ): Promise<DeleteQuestionnaireResponse> => {

@@ -77,10 +77,18 @@ export interface SearchQuestionnairesResponse {
   };
 }
 
+// Update Questionnaire Response - POST /api/v1/questionnaire/update
+export interface UpdateQuestionnaireResponse {
+  success: true;
+  message: string;
+  data: Questionnaire;
+}
+
 // Delete Questionnaire Response - POST /api/v1/questionnaire/delete
 export interface DeleteQuestionnaireResponse {
   success: true;
   message: string;
+  data?: Questionnaire; // Returned on soft delete
 }
 
 // Duplicate Questionnaire Response - POST /api/v1/questionnaire/duplicate
@@ -146,9 +154,19 @@ export interface GetQuestionnaireRequest {
   id: string; // Required: Questionnaire ObjectId
 }
 
+// Update Questionnaire Request - POST /api/v1/questionnaire/update
+export interface UpdateQuestionnaireRequest {
+  id: string; // Required: Questionnaire ObjectId
+  name?: string; // Optional: New name
+  description?: string; // Optional: New description
+  isDefault?: boolean; // Optional: Change template status
+  themes?: ThemeInput[]; // Optional: Replace all themes (warning: replaces entire structure)
+}
+
 // Delete Questionnaire Request - POST /api/v1/questionnaire/delete
 export interface DeleteQuestionnaireRequest {
   id: string; // Required: Questionnaire ObjectId
+  hardDelete?: boolean; // Optional: Permanent delete (default: false = soft delete)
 }
 
 // Duplicate Questionnaire Request - POST /api/v1/questionnaire/duplicate

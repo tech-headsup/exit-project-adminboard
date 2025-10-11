@@ -60,14 +60,19 @@ export const API_ENDPOINTS = {
     CREATE: "/questionnaire/create", // Body: { name, description?, isDefault?, themes: [...], createdBy }
     SEARCH: "/questionnaire/search", // Body: { page?, limit?, search?: { isDefault?, isActive?, createdBy?, name? }, sort? }
     SEARCH_BY_ID: "/questionnaire/search-by-id", // Body: { id }
-    DELETE: "/questionnaire/delete", // Body: { id }
+    UPDATE: "/questionnaire/update", // Body: { id, name?, description?, isDefault?, themes? }
+    DELETE: "/questionnaire/delete", // Body: { id, hardDelete? }
     DUPLICATE: "/questionnaire/duplicate", // Body: { id, name, createdBy }
   },
 
   // Answer endpoints (all POST with data in req.body)
   ANSWERS: {
     SUBMIT_INTERVIEW: "/answer/submit-interview-answers", // Body: { candidateId, projectId, questionnaireId, answers: [...], submittedBy, completedAt, interviewDurationMinutes }
+    SUBMIT_BULK: "/answer/submit-bulk", // Body: { candidateId, projectId, questionnaireId, answers: [...], submittedBy }
     GET_BY_CANDIDATE: "/answer/get-by-candidate", // Body: { candidateId, themeId? }
     GET_BY_PROJECT: "/answer/get-by-project", // Body: { projectId, page?, limit?, themeId? }
+    SEARCH_BY_ID: "/answer/search-by-id", // Body: { id }
+    UPDATE: "/answer/update", // Body: { id, answer?, notes? }
+    DELETE: "/answer/delete", // Body: { id, hardDelete? }
   },
 };
