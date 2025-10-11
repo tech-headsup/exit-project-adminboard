@@ -3,20 +3,17 @@ import {
   CreateQuestionnaireResponse,
   GetQuestionnaireRequest,
   GetQuestionnaireResponse,
-  GetQuestionnairesRequest,
-  GetQuestionnairesResponse,
-  GetGlobalTemplatesRequest,
-  GetGlobalTemplatesResponse,
+  SearchQuestionnairesRequest,
+  SearchQuestionnairesResponse,
   DeleteQuestionnaireRequest,
   DeleteQuestionnaireResponse,
   DuplicateQuestionnaireRequest,
   DuplicateQuestionnaireResponse,
-  AddQuestionRequest,
-  AddQuestionResponse,
-  UpdateQuestionRequest,
-  UpdateQuestionResponse,
-  DeleteQuestionRequest,
-  DeleteQuestionResponse,
+  // Legacy types for backward compatibility
+  GetQuestionnairesRequest,
+  GetQuestionnairesResponse,
+  GetGlobalTemplatesRequest,
+  GetGlobalTemplatesResponse,
 } from "@/types/questionnaireTypes";
 import apiClient from "../client";
 import { API_ENDPOINTS } from "@/constant/apiEnpoints";
@@ -38,29 +35,18 @@ export const questionnaireService = {
     params: GetQuestionnaireRequest
   ): Promise<GetQuestionnaireResponse> => {
     const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.GET,
+      API_ENDPOINTS.QUESTIONNAIRES.SEARCH_BY_ID,
       params
     );
     return response.data;
   },
 
-  // Get all questionnaires with pagination/filtering/sorting
-  getQuestionnaires: async (
-    params: GetQuestionnairesRequest
-  ): Promise<GetQuestionnairesResponse> => {
+  // Search questionnaires with pagination/filtering/sorting
+  searchQuestionnaires: async (
+    params: SearchQuestionnairesRequest
+  ): Promise<SearchQuestionnairesResponse> => {
     const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.GET_ALL,
-      params
-    );
-    return response.data;
-  },
-
-  // Get global templates
-  getGlobalTemplates: async (
-    params: GetGlobalTemplatesRequest
-  ): Promise<GetGlobalTemplatesResponse> => {
-    const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.GET_GLOBAL_TEMPLATES,
+      API_ENDPOINTS.QUESTIONNAIRES.SEARCH,
       params
     );
     return response.data;
@@ -88,35 +74,33 @@ export const questionnaireService = {
     return response.data;
   },
 
-  // Add a question to a questionnaire
-  addQuestion: async (
-    params: AddQuestionRequest
-  ): Promise<AddQuestionResponse> => {
+  // ==================== LEGACY METHODS (For Backward Compatibility) ====================
+  // These methods use the old naming but call the new endpoints
+
+  // Get all questionnaires (legacy method - calls searchQuestionnaires)
+  getQuestionnaires: async (
+    params: GetQuestionnairesRequest
+  ): Promise<GetQuestionnairesResponse> => {
     const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.ADD_QUESTION,
+      API_ENDPOINTS.QUESTIONNAIRES.SEARCH,
       params
     );
     return response.data;
   },
 
-  // Update a question in a questionnaire
-  updateQuestion: async (
-    params: UpdateQuestionRequest
-  ): Promise<UpdateQuestionResponse> => {
+  // Get global templates (legacy method - calls searchQuestionnaires with isDefault filter)
+  getGlobalTemplates: async (
+    params: GetGlobalTemplatesRequest
+  ): Promise<GetGlobalTemplatesResponse> => {
     const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.UPDATE_QUESTION,
-      params
-    );
-    return response.data;
-  },
-
-  // Delete a question from a questionnaire
-  deleteQuestion: async (
-    params: DeleteQuestionRequest
-  ): Promise<DeleteQuestionResponse> => {
-    const response = await apiClient.post(
-      API_ENDPOINTS.QUESTIONNAIRES.DELETE_QUESTION,
-      params
+      API_ENDPOINTS.QUESTIONNAIRES.SEARCH,
+      {
+        ...params,
+        search: {
+          ...params.search,
+          isDefault: true,
+        },
+      }
     );
     return response.data;
   },

@@ -57,14 +57,17 @@ export const API_ENDPOINTS = {
 
   // questionnaires endpoints (all POST with data in req.body)
   QUESTIONNAIRES: {
-    CREATE: "/questionnaires/create", // Body: { questionnaireType, themes: [...], isGlobalTemplate? }
-    GET: "/questionnaires/get", // Body: { id }
-    GET_ALL: "/questionnaires/get-all", // Body: { page?, limit?, search?, sort? }
-    GET_GLOBAL_TEMPLATES: "/questionnaires/get-global-templates", // Body: { page?, limit?, search?, sort? }
-    DELETE: "/questionnaires/delete", // Body: { id }
-    DUPLICATE: "/questionnaires/duplicate", // Body: { questionnaireId }
-    ADD_QUESTION: "/questionnaires/add-question", // Body: { questionnaireId, themeId, question: {...} }
-    UPDATE_QUESTION: "/questionnaires/update-question", // Body: { questionnaireId, themeId, questionId, updates: {...} }
-    DELETE_QUESTION: "/questionnaires/delete-question", // Body: { questionnaireId, themeId, questionId }
+    CREATE: "/questionnaire/create", // Body: { name, description?, isDefault?, themes: [...], createdBy }
+    SEARCH: "/questionnaire/search", // Body: { page?, limit?, search?: { isDefault?, isActive?, createdBy?, name? }, sort? }
+    SEARCH_BY_ID: "/questionnaire/search-by-id", // Body: { id }
+    DELETE: "/questionnaire/delete", // Body: { id }
+    DUPLICATE: "/questionnaire/duplicate", // Body: { id, name, createdBy }
+  },
+
+  // Answer endpoints (all POST with data in req.body)
+  ANSWERS: {
+    SUBMIT_INTERVIEW: "/answer/submit-interview-answers", // Body: { candidateId, projectId, questionnaireId, answers: [...], submittedBy, completedAt, interviewDurationMinutes }
+    GET_BY_CANDIDATE: "/answer/get-by-candidate", // Body: { candidateId, themeId? }
+    GET_BY_PROJECT: "/answer/get-by-project", // Body: { projectId, page?, limit?, themeId? }
   },
 };

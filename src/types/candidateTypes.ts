@@ -56,12 +56,13 @@ export interface PopulatedUser {
 }
 
 export interface InterviewDetails {
-  scheduledDate?: Date;
-  startedAt?: Date;
-  completedAt?: Date;
+  scheduledDate?: Date | string;
+  startedAt?: Date | string;
+  completedAt?: Date | string;
   interviewDurationMinutes?: number;
   questionnaireId?: string;
   answersSubmitted?: boolean;
+  completedThemes?: string[]; // Array of theme IDs that have been completed
 }
 
 export interface FollowupAttempt {

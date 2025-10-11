@@ -3,24 +3,23 @@ import { questionnaireService } from "@/api/services/questionnaireService";
 import { queryKeys } from "@/utils/queryKeys";
 import {
   CreateQuestionnaireRequest,
+  SearchQuestionnairesRequest,
+  DuplicateQuestionnaireRequest,
+  // Legacy types for backward compatibility
   GetQuestionnairesRequest,
   GetGlobalTemplatesRequest,
-  DuplicateQuestionnaireRequest,
-  AddQuestionRequest,
-  UpdateQuestionRequest,
-  DeleteQuestionRequest,
 } from "@/types/questionnaireTypes";
 
 // ==================== QUERIES ====================
 
 /**
- * Hook to fetch paginated/filtered questionnaires
+ * Hook to search/fetch paginated/filtered questionnaires
  * @param params - Search filters, pagination, and sort options
  */
-export const useQuestionnaires = (params: GetQuestionnairesRequest = {}) => {
+export const useQuestionnaires = (params: SearchQuestionnairesRequest = {}) => {
   return useQuery({
     queryKey: queryKeys.questionnaires.list(params),
-    queryFn: () => questionnaireService.getQuestionnaires(params),
+    queryFn: () => questionnaireService.searchQuestionnaires(params),
   });
 };
 
@@ -41,7 +40,7 @@ export const useQuestionnaireById = (
 };
 
 /**
- * Hook to fetch global questionnaire templates
+ * Hook to fetch global/default questionnaire templates
  * @param params - Search filters, pagination, and sort options
  */
 export const useGlobalTemplates = (params: GetGlobalTemplatesRequest = {}) => {
@@ -105,62 +104,37 @@ export const useDuplicateQuestionnaire = () => {
   });
 };
 
-/**
- * Hook to add a question to a questionnaire
- */
-export const useAddQuestion = () => {
-  const queryClient = useQueryClient();
+// ==================== LEGACY HOOKS (Deprecated - will be removed in future) ====================
+// These hooks are kept for backward compatibility with existing code
+// TODO: Update components to use the new hooks above
 
-  return useMutation({
-    mutationFn: (data: AddQuestionRequest) =>
-      questionnaireService.addQuestion(data),
-    onSuccess: (response) => {
-      // Invalidate specific questionnaire query
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.questionnaires.detail(response.data._id),
-      });
-      // Invalidate all questionnaire list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.questionnaires.all });
-    },
-  });
+/**
+ * @deprecated Use useQuestionnaires instead
+ */
+export const useGetQuestionnaires = (params: GetQuestionnairesRequest = {}) => {
+  return useQuestionnaires(params);
 };
 
 /**
- * Hook to update a question in a questionnaire
+ * @deprecated Use useQuestionnaireById instead
  */
-export const useUpdateQuestion = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: UpdateQuestionRequest) =>
-      questionnaireService.updateQuestion(data),
-    onSuccess: (response) => {
-      // Invalidate specific questionnaire query
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.questionnaires.detail(response.data._id),
-      });
-      // Invalidate all questionnaire list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.questionnaires.all });
-    },
-  });
+export const useGetQuestionnaireById = (
+  questionnaireId: string,
+  enabled = true
+) => {
+  return useQuestionnaireById(questionnaireId, enabled);
 };
 
 /**
- * Hook to delete a question from a questionnaire
+ * @deprecated Use useGlobalTemplates instead
  */
-export const useDeleteQuestion = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: DeleteQuestionRequest) =>
-      questionnaireService.deleteQuestion(data),
-    onSuccess: (response) => {
-      // Invalidate specific questionnaire query
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.questionnaires.detail(response.data._id),
-      });
-      // Invalidate all questionnaire list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.questionnaires.all });
-    },
-  });
+export const useGetGlobalTemplates = (params: GetGlobalTemplatesRequest = {}) => {
+  return useGlobalTemplates(params);
 };
+
+// Note: The following hooks are removed as the APIs no longer exist:
+// - useAddQuestion
+// - useUpdateQuestion
+// - useDeleteQuestion
+// Questions can no longer be added/updated/deleted individually.
+// To modify questions, duplicate the questionnaire and create a new one.

@@ -3,6 +3,7 @@ import { SearchUsersRequest } from "@/types/userTypes";
 import { GetProjectsRequest, GetProjectsByCompanyRequest } from "@/types/projectTypes";
 import { GetCandidatesRequest } from "@/types/candidateTypes";
 import { GetQuestionnairesRequest, GetGlobalTemplatesRequest } from "@/types/questionnaireTypes";
+import { GetAnswersByCandidateRequest, GetAnswersByProjectRequest } from "@/types/answerTypes";
 
 export const queryKeys = {
   // User keys
@@ -44,5 +45,12 @@ export const queryKeys = {
     list: (params?: GetQuestionnairesRequest) => ["questionnaires", "list", params] as const,
     detail: (id: string) => ["questionnaires", "detail", id] as const,
     globalTemplates: (params?: GetGlobalTemplatesRequest) => ["questionnaires", "global-templates", params] as const,
+  },
+
+  // Answer keys
+  answers: {
+    all: ["answers"] as const,
+    byCandidate: (params: GetAnswersByCandidateRequest) => ["answers", "candidate", params] as const,
+    byProject: (params: GetAnswersByProjectRequest) => ["answers", "project", params] as const,
   },
 };
