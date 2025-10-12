@@ -33,16 +33,32 @@ export interface Answer {
   updatedAt: Date | string;
 }
 
-// Answer input for submission (before saving to DB)
-export interface AnswerInput {
-  themeId: string; // Required: ObjectId as string
+// ==================== NEW STRUCTURE (v2.0) ====================
+
+// Individual question answer (with questionId, NO notes allowed)
+export interface IndividualAnswerInput {
+  themeId: string; // Required
   themeName: string; // Required
-  questionId?: string; // Optional: ObjectId or null
-  questionText?: string; // Optional
-  questionType?: QuestionType; // Optional
-  answer?: AnswerValue; // Optional: can be empty if notes provided
-  notes?: string; // Optional: can be empty if answer provided
+  questionId: string; // Required
+  questionText: string; // Required
+  questionType: QuestionType; // Required
+  answer: AnswerValue; // Required
+  // notes: NOT ALLOWED
 }
+
+// Theme-level notes (NO questionId, NO answer allowed)
+export interface ThemeNoteInput {
+  themeId: string; // Required
+  themeName: string; // Required
+  questionId: null; // Must be null
+  questionText: null; // Must be null
+  questionType: null; // Must be null
+  answer: null; // Must be null
+  notes: string; // Required
+}
+
+// Union type for submission (can be either individual answer or theme note)
+export type AnswerInput = IndividualAnswerInput | ThemeNoteInput;
 
 // Grouped answers by theme
 export interface ThemeAnswers {
@@ -59,7 +75,9 @@ export interface SubmitInterviewAnswersResponse {
   message: string;
   data: {
     candidateId: string;
-    totalAnswers: number;
+    totalDocuments: number; // Total answer documents created
+    individualAnswers: number; // Number of individual question answers
+    themeNotes: number; // Number of theme-level notes
     totalThemes: number;
     completedThemes: number;
     overallStatus: string; // "INTERVIEWED"
@@ -184,16 +202,23 @@ export interface SubmitBulkAnswersRequest {
 
 // ==================== INTERVIEW STATE TYPES (for Zustand) ====================
 
-// Interview answer stored in Zustand (keyed by themeId_questionId or themeId for theme-level notes)
-export interface InterviewAnswer {
+// Individual question answer in Zustand (NO notes)
+export interface InterviewQuestionAnswer {
   themeId: string;
   themeName: string;
-  questionId: string | null; // null for theme-level notes only
+  questionId: string; // Required
   questionText: string;
-  questionType: QuestionType | "";
-  answer: AnswerValue | "";
-  notes: string;
+  questionType: QuestionType;
+  answer: AnswerValue | ""; // Empty string if not yet answered
   answeredAt?: string; // Timestamp when answered
+}
+
+// Theme note in Zustand (NO answer, NO questionId)
+export interface InterviewThemeNote {
+  themeId: string;
+  themeName: string;
+  notes: string; // Can be empty string if not yet filled
+  updatedAt?: string; // Timestamp when last updated
 }
 
 // Interview state stored in Zustand + localStorage
@@ -202,6 +227,7 @@ export interface InterviewState {
   projectId: string;
   questionnaireId: string;
   startedAt: string; // ISO timestamp
-  answers: Record<string, InterviewAnswer>; // Key: `${themeId}_${questionId}` or `${themeId}_notes`
+  answers: Record<string, InterviewQuestionAnswer>; // Key: `${themeId}_${questionId}`
+  themeNotes: Record<string, InterviewThemeNote>; // Key: `${themeId}`
   currentThemeId: string | null; // Currently active theme
 }
