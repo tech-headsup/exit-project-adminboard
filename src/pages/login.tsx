@@ -9,11 +9,11 @@ export default function LoginPage() {
           <a href="#" className="flex items-center gap-2 font-medium">
             <div className="flex items-center justify-center">
               <Image
-                src="/headsupLogoPNG.png"
+                src="/last-mile.png"
                 alt="The Last Mile"
-                width={69}
-                height={69}
-                className="object-contain"
+                width={120}
+                height={120}
+                className="object-contain opacity-95 mix-blend-multiply dark:mix-blend-screen"
               />
             </div>
             <span className="text-lg font-semibold">The Last Mile</span>
