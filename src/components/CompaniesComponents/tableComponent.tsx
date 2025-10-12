@@ -27,7 +27,6 @@ export default function CompaniesTableComponent() {
     z.string(),
     z.union([z.literal(1), z.literal(-1)])
   );
-
   // URL state management with nuqs
   const [queryState, setQueryState] = useQueryStates({
     page: parseAsInteger.withDefault(1),

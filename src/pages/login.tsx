@@ -1,6 +1,5 @@
 import { LoginForm } from "@/components/login-form"
 import Image from "next/image"
-import {headsupCorp} from "../../public/headsupCorp.png"
 
 export default function LoginPage() {
   return (
@@ -10,14 +9,14 @@ export default function LoginPage() {
           <a href="#" className="flex items-center gap-2 font-medium">
             <div className="flex items-center justify-center">
               <Image
-                src="/headsupLogoPNG.png"
+                src="/last-mile.png"
                 alt="The Last Mile"
-                width={69}
-                height={69}
-                className="object-contain"
+                width={120}
+                height={120}
+                className="object-contain mix-blend-multiply dark:mix-blend-screen"
               />
             </div>
-            <span className="text-lg font-semibold">The Last Mile</span>
+            <span className="text-lg font-semibold"></span>
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">
@@ -29,11 +28,11 @@ export default function LoginPage() {
       <div className="bg-muted relative hidden lg:block">
         <div className="absolute inset-0 flex items-center justify-center">
           <Image
-            src="/headsupCorp.png"
+            src="/last-mile.png"
             alt="Headsup Corporation"
             width={400}
             height={400}
-            className="object-contain opacity-95"
+            className="object-contain opacity-95 mix-blend-multiply dark:mix-blend-screen"
           />
         </div>
       </div>

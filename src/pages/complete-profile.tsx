@@ -14,8 +14,8 @@ import { useCompleteProfile } from "@/hooks/useAuth";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
-import { GalleryVerticalEnd } from "lucide-react";
 import { useEffect } from "react";
+import Image from "next/image";
 
 const completeProfileSchema = z
   .object({
@@ -87,10 +87,15 @@ export default function CompleteProfilePage() {
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <a href="#" className="flex items-center gap-2 self-center font-medium">
-          <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-            <GalleryVerticalEnd className="size-4" />
+          <div className="flex items-center justify-center">
+            <Image
+              src="/last-mile.png"
+              alt="The Last Mile"
+              width={120}
+              height={120}
+              className="object-contain mix-blend-multiply dark:mix-blend-screen"
+            />
           </div>
-          Acme Inc.
         </a>
         <div className="bg-card rounded-xl p-6 shadow-lg">
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">

@@ -119,7 +119,7 @@ export interface CreateCompanyRequest {
   clientPOCs?: string[];
 }
 
-// Search filter operators
+// Search filter operators (Backend custom format)
 export interface SearchOperators {
   eq?: any; // equals
   contains?: string; // contains substring
