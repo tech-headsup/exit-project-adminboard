@@ -119,10 +119,8 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
 
   const questionnaire = questionnaireResponse?.data || null;
 
-  const {
-    data: answersResponse,
-    isLoading: isLoadingAnswers,
-  } = useAnswersByCandidate(candidateId, undefined, status === "COMPLETED");
+  const { data: answersResponse, isLoading: isLoadingAnswers } =
+    useAnswersByCandidate(candidateId, undefined, status === "COMPLETED");
 
   const submittedAnswers =
     answersResponse?.data.themes.flatMap((t) => t.answers) || [];
@@ -444,7 +442,8 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
       // React Query will automatically refetch due to cache invalidation from mutations
     } catch (error: any) {
       console.error("Failed to update answers:", error);
-      const errorMsg = error?.response?.data?.error || "Failed to update answers";
+      const errorMsg =
+        error?.response?.data?.error || "Failed to update answers";
       toast.error(errorMsg);
     }
   };
@@ -620,7 +619,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
             orientation="vertical"
             className="w-full flex-row"
           >
-            <TabsList className="flex-col h-fit">
+            <TabsList className="flex-col h-fit space-y-2 p-2">
               {questionnaire.themes.map((theme) => {
                 const themeAnswers = submittedAnswers.filter(
                   (a) => a.themeId === theme.themeId
@@ -642,99 +641,13 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
             </TabsList>
 
             <div className="grow rounded-md border">
-              {editMode ? (
-                // EDIT MODE - Show ALL questions from questionnaire
-                mergedData.map((theme) => (
-                  <TabsContent
-                    key={theme.themeId}
-                    value={theme.themeId}
-                    className="p-6 space-y-8"
-                  >
-                    <div>
-                      <h3 className="text-xl font-semibold">
-                        {theme.themeName}
-                      </h3>
-                      {theme.themeDescription && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {theme.themeDescription}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Render ALL questions */}
-                    {theme.questions.map((question, idx) => {
-                      const key = `${theme.themeId}_${question.questionId}`;
-                      const currentValue =
-                        editingAnswers[key] !== undefined
-                          ? editingAnswers[key]
-                          : question.answer;
-
-                      return (
-                        <div
-                          key={question.questionId}
-                          className="pb-6 border-b last:border-0"
-                        >
-                          <div className="mb-2 text-sm text-muted-foreground">
-                            Question {idx + 1} of {theme.questions.length}
-                          </div>
-                          <QuestionRenderer
-                            questionId={question.questionId}
-                            questionText={question.questionText}
-                            questionType={question.questionType}
-                            ratingScale={question.ratingScale || undefined}
-                            value={currentValue || ""}
-                            onChange={(value) =>
-                              handleEditAnswerChange(key, value)
-                            }
-                          />
-                        </div>
-                      );
-                    })}
-
-                    {/* Theme-level notes */}
-                    <div className="pt-4 border-t">
-                      <Label
-                        htmlFor={`theme-notes-${theme.themeId}`}
-                        className="text-sm font-medium"
-                      >
-                        General Theme Notes
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1 mb-2">
-                        Add general notes about this theme instead of
-                        answering individual questions
-                      </p>
-                      <Textarea
-                        id={`theme-notes-${theme.themeId}`}
-                        value={
-                          editingAnswers[`${theme.themeId}_notes`] !==
-                          undefined
-                            ? editingAnswers[`${theme.themeId}_notes`]
-                            : theme.themeNotes || ""
-                        }
-                        onChange={(e) =>
-                          handleEditAnswerChange(
-                            `${theme.themeId}_notes`,
-                            e.target.value
-                          )
-                        }
-                        placeholder="Type general notes about this theme..."
-                        className="min-h-[100px]"
-                      />
-                    </div>
-                  </TabsContent>
-                ))
-              ) : (
-                // READ-ONLY MODE - Show only submitted answers
-                questionnaire.themes.map((theme) => {
-                  const themeAnswers = submittedAnswers.filter(
-                    (a) => a.themeId === theme.themeId
-                  );
-
-                  return (
+              {editMode
+                ? // EDIT MODE - Show ALL questions from questionnaire
+                  mergedData.map((theme) => (
                     <TabsContent
                       key={theme.themeId}
                       value={theme.themeId}
-                      className="p-6 space-y-6"
+                      className="p-6 space-y-8"
                     >
                       <div>
                         <h3 className="text-xl font-semibold">
@@ -747,48 +660,134 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
                         )}
                       </div>
 
-                      {themeAnswers.map((answer, idx) => {
-                        // NEW v2.0: Separate individual answers (questionId exists) from theme notes (no questionId)
-                        const isThemeNote = !answer.questionId;
+                      {/* Render ALL questions */}
+                      {theme.questions.map((question, idx) => {
+                        const key = `${theme.themeId}_${question.questionId}`;
+                        const currentValue =
+                          editingAnswers[key] !== undefined
+                            ? editingAnswers[key]
+                            : question.answer;
 
                         return (
                           <div
-                            key={answer._id}
+                            key={question.questionId}
                             className="pb-6 border-b last:border-0"
                           >
                             <div className="mb-2 text-sm text-muted-foreground">
-                              {isThemeNote ? "Theme Notes" : `Question ${idx + 1}`}
+                              Question {idx + 1} of {theme.questions.length}
                             </div>
-
-                            <div>
-                              {!isThemeNote && (
-                                <h4 className="text-base font-medium mb-3">
-                                  {answer.questionText}
-                                </h4>
-                              )}
-                              <div className="p-4 rounded-lg bg-muted/30">
-                                <p className="text-sm whitespace-pre-wrap">
-                                  {isThemeNote
-                                    ? answer.notes || (
-                                        <em className="text-muted-foreground">
-                                          No notes provided
-                                        </em>
-                                      )
-                                    : answer.answer || (
-                                        <em className="text-muted-foreground">
-                                          No answer provided
-                                        </em>
-                                      )}
-                                </p>
-                              </div>
-                            </div>
+                            <QuestionRenderer
+                              questionId={question.questionId}
+                              questionText={question.questionText}
+                              questionType={question.questionType}
+                              ratingScale={question.ratingScale || undefined}
+                              value={currentValue || ""}
+                              onChange={(value) =>
+                                handleEditAnswerChange(key, value)
+                              }
+                            />
                           </div>
                         );
                       })}
+
+                      {/* Theme-level notes */}
+                      <div className="pt-4 border-t">
+                        <Label
+                          htmlFor={`theme-notes-${theme.themeId}`}
+                          className="text-sm font-medium"
+                        >
+                          General Theme Notes
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1 mb-2">
+                          Add general notes about this theme instead of
+                          answering individual questions
+                        </p>
+                        <Textarea
+                          id={`theme-notes-${theme.themeId}`}
+                          value={
+                            editingAnswers[`${theme.themeId}_notes`] !==
+                            undefined
+                              ? editingAnswers[`${theme.themeId}_notes`]
+                              : theme.themeNotes || ""
+                          }
+                          onChange={(e) =>
+                            handleEditAnswerChange(
+                              `${theme.themeId}_notes`,
+                              e.target.value
+                            )
+                          }
+                          placeholder="Type general notes about this theme..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
                     </TabsContent>
-                  );
-                })
-              )}
+                  ))
+                : // READ-ONLY MODE - Show only submitted answers
+                  questionnaire.themes.map((theme) => {
+                    const themeAnswers = submittedAnswers.filter(
+                      (a) => a.themeId === theme.themeId
+                    );
+
+                    return (
+                      <TabsContent
+                        key={theme.themeId}
+                        value={theme.themeId}
+                        className="p-6 space-y-6"
+                      >
+                        <div>
+                          <h3 className="text-xl font-semibold">
+                            {theme.themeName}
+                          </h3>
+                          {theme.themeDescription && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {theme.themeDescription}
+                            </p>
+                          )}
+                        </div>
+
+                        {themeAnswers.map((answer, idx) => {
+                          // NEW v2.0: Separate individual answers (questionId exists) from theme notes (no questionId)
+                          const isThemeNote = !answer.questionId;
+
+                          return (
+                            <div
+                              key={answer._id}
+                              className="pb-6 border-b last:border-0"
+                            >
+                              <div className="mb-2 text-sm text-muted-foreground">
+                                {isThemeNote
+                                  ? "Theme Notes"
+                                  : `Question ${idx + 1}`}
+                              </div>
+
+                              <div>
+                                {!isThemeNote && (
+                                  <h4 className="text-base font-medium mb-3">
+                                    {answer.questionText}
+                                  </h4>
+                                )}
+                                <div className="p-4 rounded-lg bg-muted/30">
+                                  <p className="text-sm whitespace-pre-wrap">
+                                    {isThemeNote
+                                      ? answer.notes || (
+                                          <em className="text-muted-foreground">
+                                            No notes provided
+                                          </em>
+                                        )
+                                      : answer.answer || (
+                                          <em className="text-muted-foreground">
+                                            No answer provided
+                                          </em>
+                                        )}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </TabsContent>
+                    );
+                  })}
             </div>
           </Tabs>
         </div>
