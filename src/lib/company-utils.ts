@@ -32,7 +32,29 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     }
 
     const data = await response.json();
-    return data.url || data.data?.url || null;
+    console.log("Upload response:", data); // Debug log to see the actual response structure
+
+    // Return the file ID (not the URL) - the backend should return the file ID
+    // We store the ID and use getImageUrl() to construct the full URL when needed
+    // Try different possible field names that might contain the file ID
+    const fileId =
+      data.id ||
+      data.data?.id ||
+      data.fileId ||
+      data.data?.fileId ||
+      data.key ||
+      data.data?.key ||
+      data._id ||
+      data.data?._id ||
+      null;
+
+    if (!fileId) {
+      console.error("Could not extract file ID from upload response:", data);
+      throw new Error("Upload succeeded but no file ID was returned");
+    }
+
+    console.log("Extracted file ID:", fileId); // Debug log
+    return fileId;
   } catch (error) {
     console.error("Image upload error:", error);
     throw error;

@@ -1,6 +1,5 @@
 import { LoginForm } from "@/components/login-form"
 import Image from "next/image"
-import {headsupCorp} from "../../public/headsupCorp.png"
 
 export default function LoginPage() {
   return (
@@ -29,11 +28,11 @@ export default function LoginPage() {
       <div className="bg-muted relative hidden lg:block">
         <div className="absolute inset-0 flex items-center justify-center">
           <Image
-            src="/headsupCorp.png"
+            src="/last-mile.png"
             alt="Headsup Corporation"
             width={400}
             height={400}
-            className="object-contain opacity-95"
+            className="object-contain opacity-95 mix-blend-multiply dark:mix-blend-screen"
           />
         </div>
       </div>

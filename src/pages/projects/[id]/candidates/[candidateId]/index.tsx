@@ -16,10 +16,41 @@ import { useCandidateById } from "@/hooks/useCandidate";
 import { ProfileDetailsTab } from "@/components/candidates/ProfileDetailsTab";
 import { FollowupsInterviewTab } from "@/components/candidates/FollowupsInterviewTab";
 import { InterviewQnATab } from "@/components/interview/InterviewQnATab";
+import { useQueryState, parseAsStringLiteral } from "nuqs";
+import { useEffect } from "react";
 
 export default function CandidateDetails() {
   const router = useRouter();
   const { id: projectId, candidateId } = router.query;
+
+  // Manage selected tab via URL query parameter
+  const [selectedTab, setSelectedTab] = useQueryState(
+    "selectedTab",
+    parseAsStringLiteral(["profile", "followups", "qna", "report"] as const)
+      .withDefault("profile")
+  );
+
+  // Ensure the selectedTab param is always in the URL on mount
+  useEffect(() => {
+    if (router.isReady && !router.query.selectedTab) {
+      // Use replace to avoid adding to history
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, selectedTab: "profile" },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router]);
+
+  // Handle tab change with proper typing
+  const handleTabChange = (value: string) => {
+    if (value === "profile" || value === "followups" || value === "qna" || value === "report") {
+      setSelectedTab(value);
+    }
+  };
 
   // Fetch candidate data
   const { data, isLoading, error } = useCandidateById(
@@ -131,7 +162,7 @@ export default function CandidateDetails() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="profile">
+      <Tabs value={selectedTab} onValueChange={handleTabChange}>
         <ScrollArea>
           <TabsList className="mb-3">
             <TabsTrigger value="profile">
