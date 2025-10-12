@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { useInterviewStore } from "@/stores/interviewStore";
 import { QuestionRenderer } from "./QuestionRenderer";
 import { Theme } from "@/types/questionnaireTypes";
-import { AnswerInput } from "@/types/answerTypes";
+import { IndividualAnswerInput, ThemeNoteInput } from "@/types/answerTypes";
 import { Candidate, OverallStatus } from "@/types/candidateTypes";
 
 // React Query Hooks
@@ -33,6 +33,7 @@ import {
   useAnswersByCandidate,
   useSubmitInterviewAnswers,
   useUpdateAnswer,
+  useSubmitBulkAnswers,
 } from "@/hooks/useAnswer";
 import {
   useUpdateInterviewDetails,
@@ -53,7 +54,6 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
   const completedAt = candidate.interviewDetails?.completedAt;
   const interviewDurationMinutes =
     candidate.interviewDetails?.interviewDurationMinutes;
-  const answersSubmitted = candidate.interviewDetails?.answersSubmitted;
   const interviewerId =
     typeof candidate.assignedInterviewer === "string"
       ? candidate.assignedInterviewer
@@ -64,6 +64,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
       : candidate.assignedInterviewer
       ? `${candidate.assignedInterviewer.firstName} ${candidate.assignedInterviewer.lastName}`
       : undefined;
+
   // Determine interview status FIRST (needed for hooks)
   const getInterviewStatus = () => {
     if (completedAt) return "COMPLETED";
@@ -78,12 +79,34 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
   const [editMode, setEditMode] = useState(false);
   const [editingAnswers, setEditingAnswers] = useState<Record<string, any>>({});
 
+  // Merged data for edit mode (questionnaire questions + submitted answers)
+  interface MergedQuestion {
+    questionId: string;
+    questionText: string;
+    questionType: any;
+    ratingScale?: any;
+    answer?: any;
+    answerId?: string | null; // null if no answer exists yet
+  }
+
+  interface MergedTheme {
+    themeId: string;
+    themeName: string;
+    themeDescription?: string;
+    questions: MergedQuestion[];
+    themeNotes?: string;
+    themeNotesAnswerId?: string | null;
+  }
+
   const {
     initializeInterview,
-    setAnswer,
-    getAnswer,
+    setQuestionAnswer,
+    setThemeNotes,
+    getQuestionAnswer,
+    getThemeNotes,
     clearInterview,
     answers,
+    themeNotes,
     startedAt: zustandStartedAt,
   } = useInterviewStore();
 
@@ -96,8 +119,10 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
 
   const questionnaire = questionnaireResponse?.data || null;
 
-  const { data: answersResponse, isLoading: isLoadingAnswers } =
-    useAnswersByCandidate(candidateId, undefined, status === "COMPLETED");
+  const {
+    data: answersResponse,
+    isLoading: isLoadingAnswers,
+  } = useAnswersByCandidate(candidateId, undefined, status === "COMPLETED");
 
   const submittedAnswers =
     answersResponse?.data.themes.flatMap((t) => t.answers) || [];
@@ -105,6 +130,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
   const updateInterviewDetailsMutation = useUpdateInterviewDetails();
   const submitInterviewMutation = useSubmitInterviewAnswers();
   const updateAnswerMutation = useUpdateAnswer();
+  const submitBulkAnswersMutation = useSubmitBulkAnswers();
   const updateCandidateStatusMutation = useUpdateCandidateStatus();
 
   const loading = isLoadingQuestionnaire || isLoadingAnswers;
@@ -112,12 +138,63 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
     updateInterviewDetailsMutation.isPending ||
     submitInterviewMutation.isPending ||
     updateAnswerMutation.isPending ||
+    submitBulkAnswersMutation.isPending ||
     updateCandidateStatusMutation.isPending;
 
   // Set initial theme when questionnaire loads
   if (questionnaire && !currentThemeId && questionnaire.themes.length > 0) {
     setCurrentThemeId(questionnaire.themes[0].themeId);
   }
+
+  // ==================== UTILITY: MERGE QUESTIONNAIRE WITH ANSWERS ====================
+  /**
+   * Merges the complete questionnaire structure with submitted answers
+   * Returns all questions from questionnaire with answer data attached (if exists)
+   * This allows editing ALL questions, not just ones that were answered
+   */
+  const mergeQuestionnaireWithAnswers = (): MergedTheme[] => {
+    if (!questionnaire) return [];
+
+    return questionnaire.themes.map((theme) => {
+      // Find all answers for this theme (individual answers only, questionId !== null)
+      const themeAnswers = submittedAnswers.filter(
+        (a) => a.themeId === theme.themeId && a.questionId
+      );
+
+      // Find theme-level notes (answer with no questionId)
+      const themeNotesAnswer = submittedAnswers.find(
+        (a) => a.themeId === theme.themeId && !a.questionId
+      );
+
+      // Merge questions with their answers
+      const mergedQuestions: MergedQuestion[] = theme.questions.map(
+        (question) => {
+          // Find existing answer for this question
+          const existingAnswer = themeAnswers.find(
+            (a) => a.questionId === question.questionId
+          );
+
+          return {
+            questionId: question.questionId,
+            questionText: question.questionText,
+            questionType: question.questionType,
+            ratingScale: question.ratingScale,
+            answer: existingAnswer?.answer || "",
+            answerId: existingAnswer?._id || null, // null means no answer exists yet
+          };
+        }
+      );
+
+      return {
+        themeId: theme.themeId,
+        themeName: theme.themeName,
+        themeDescription: theme.themeDescription,
+        questions: mergedQuestions,
+        themeNotes: themeNotesAnswer?.notes || "",
+        themeNotesAnswerId: themeNotesAnswer?._id || null,
+      };
+    });
+  };
 
   // Start interview
   const handleStartInterview = async () => {
@@ -143,51 +220,51 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
     }
   };
 
-  // Handle answer change
+  // Handle individual question answer change (NEW v2.0 - NO notes)
   const handleAnswerChange = (
     themeId: string,
     themeName: string,
-    questionId: string | null,
+    questionId: string,
     questionText: string,
     questionType: any,
     answer: any
   ) => {
-    setAnswer(
+    setQuestionAnswer(
       themeId,
       themeName,
       questionId,
       questionText,
       questionType,
-      answer,
-      ""
+      answer
     );
   };
 
-  // Handle theme notes change
+  // Handle theme notes change (NEW v2.0 - NO answer, NO questionId)
   const handleThemeNotesChange = (
     themeId: string,
     themeName: string,
     notes: string
   ) => {
-    setAnswer(themeId, themeName, null, "", "", "", notes);
+    setThemeNotes(themeId, themeName, notes);
   };
 
-  // Calculate theme progress
+  // Calculate theme progress (NEW v2.0 - separate answers and notes)
   const getThemeProgress = (theme: Theme) => {
     const themeAnswers = Object.values(answers).filter(
-      (a) => a.themeId === theme.themeId && a.questionId !== null
+      (a) => a.themeId === theme.themeId && a.answer !== ""
     );
 
-    const answered = themeAnswers.filter((a) => a.answer !== "").length;
+    const answered = themeAnswers.length;
 
-    const themeNotes = getAnswer(theme.themeId, null);
-    const hasThemeNotes = themeNotes && themeNotes.notes !== "";
-    const hasQuestionAnswers = themeAnswers.some((a) => a.answer !== "");
+    const themeNote = getThemeNotes(theme.themeId);
+    const hasThemeNotes = themeNote && themeNote.notes !== "";
+    const hasQuestionAnswers = answered > 0;
 
     return {
       answered,
       total: theme.questions.length,
       isComplete: hasThemeNotes || hasQuestionAnswers,
+      hasNotes: hasThemeNotes,
     };
   };
 
@@ -212,7 +289,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
     return { valid: errors.length === 0, errors };
   };
 
-  // Submit interview
+  // Submit interview (NEW v2.0 - separate individual answers and theme notes)
   const handleSubmitInterview = async () => {
     const validation = validateSubmission();
     if (!validation.valid) {
@@ -227,24 +304,41 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
         (completedAtTime.getTime() - startTime.getTime()) / 60000
       );
 
-      const answersArray: AnswerInput[] = Object.values(answers)
-        .filter((a) => a.answer !== "" || a.notes !== "")
+      // Prepare individual answers (with questionId, NO notes)
+      const individualAnswers: IndividualAnswerInput[] = Object.values(answers)
+        .filter((a) => a.answer !== "")
         .map((a) => ({
           themeId: a.themeId,
           themeName: a.themeName,
-          questionId: a.questionId || undefined,
-          questionText: a.questionText || undefined,
-          questionType: a.questionType || undefined,
-          answer: a.answer !== "" ? a.answer : undefined,
-          notes: a.notes !== "" ? a.notes : undefined,
+          questionId: a.questionId, // Required
+          questionText: a.questionText, // Required
+          questionType: a.questionType, // Required
+          answer: a.answer, // Required
+          // NO notes field
         }));
+
+      // Prepare theme notes (NO questionId, NO answer)
+      const themeNotesArray: ThemeNoteInput[] = Object.values(themeNotes)
+        .filter((n) => n.notes !== "")
+        .map((n) => ({
+          themeId: n.themeId,
+          themeName: n.themeName,
+          questionId: null, // Must be null
+          questionText: null, // Must be null
+          questionType: null, // Must be null
+          answer: null, // Must be null
+          notes: n.notes, // Required
+        }));
+
+      // Combine both arrays for submission
+      const allAnswers = [...individualAnswers, ...themeNotesArray];
 
       // Step 1: Submit interview answers
       await submitInterviewMutation.mutateAsync({
         candidateId,
         projectId,
         questionnaireId,
-        answers: answersArray,
+        answers: allAnswers,
         submittedBy: interviewerId,
         completedAt: completedAtTime.toISOString(),
         interviewDurationMinutes: durationMinutes,
@@ -267,33 +361,91 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
     }
   };
 
-  // Handle edit answer
-  const handleEditAnswer = (answerId: string, newValue: any) => {
+  // Handle edit answer change in edit mode
+  const handleEditAnswerChange = (key: string, value: any) => {
     setEditingAnswers((prev) => ({
       ...prev,
-      [answerId]: newValue,
+      [key]: value,
     }));
   };
 
-  // Save edited answers
+  // Save edited answers (NEW v2.0 - handle individual answers and theme notes separately)
   const handleSaveEdits = async () => {
     try {
-      // Update all edited answers
-      for (const [answerId, value] of Object.entries(editingAnswers)) {
-        await updateAnswerMutation.mutateAsync({
-          id: answerId,
-          answer: value,
+      const mergedData = mergeQuestionnaireWithAnswers();
+
+      // Prepare individual answers (with questionId, NO notes)
+      const individualAnswersToSubmit: IndividualAnswerInput[] = [];
+
+      mergedData.forEach((theme) => {
+        // Process each question
+        theme.questions.forEach((question) => {
+          const key = `${theme.themeId}_${question.questionId}`;
+          const editedValue = editingAnswers[key];
+
+          // Use edited value if exists, otherwise use original value
+          const finalAnswer =
+            editedValue !== undefined ? editedValue : question.answer;
+
+          // Only include if answer is filled
+          if (finalAnswer !== "") {
+            individualAnswersToSubmit.push({
+              themeId: theme.themeId,
+              themeName: theme.themeName,
+              questionId: question.questionId, // Required
+              questionText: question.questionText, // Required
+              questionType: question.questionType, // Required
+              answer: finalAnswer, // Required
+              // NO notes field
+            });
+          }
+        });
+      });
+
+      // Submit individual answers using bulk endpoint
+      if (individualAnswersToSubmit.length > 0) {
+        await submitBulkAnswersMutation.mutateAsync({
+          candidateId,
+          projectId,
+          questionnaireId,
+          answers: individualAnswersToSubmit,
+          submittedBy: interviewerId,
         });
       }
 
+      // Handle theme notes separately using updateAnswer mutation
+      const themeNotesPromises: Promise<any>[] = [];
+      mergedData.forEach((theme) => {
+        const themeNotesKey = `${theme.themeId}_notes`;
+        const editedThemeNotes = editingAnswers[themeNotesKey];
+
+        // Only update if theme notes were edited
+        if (editedThemeNotes !== undefined && theme.themeNotesAnswerId) {
+          themeNotesPromises.push(
+            updateAnswerMutation.mutateAsync({
+              id: theme.themeNotesAnswerId,
+              notes: editedThemeNotes,
+            })
+          );
+        }
+      });
+
+      // Update all theme notes in parallel
+      if (themeNotesPromises.length > 0) {
+        await Promise.all(themeNotesPromises);
+      }
+
       toast.success("Answers updated successfully!");
+
+      // Exit edit mode and clear state
       setEditMode(false);
       setEditingAnswers({});
 
-      // React Query automatically refetches the answers via cache invalidation
-    } catch (error) {
+      // React Query will automatically refetch due to cache invalidation from mutations
+    } catch (error: any) {
       console.error("Failed to update answers:", error);
-      toast.error("Failed to update answers");
+      const errorMsg = error?.response?.data?.error || "Failed to update answers";
+      toast.error(errorMsg);
     }
   };
 
@@ -369,6 +521,9 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
 
   // STATE 4: COMPLETED
   if (status === "COMPLETED") {
+    // Get merged data (all questions + answers) for edit mode
+    const mergedData = editMode ? mergeQuestionnaireWithAnswers() : [];
+
     return (
       <div className="space-y-6">
         {/* Completion Summary */}
@@ -455,7 +610,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
         {/* Submitted Answers */}
         <div className="space-y-4">
           <h3 className="text-xl font-semibold flex items-center gap-2">
-            Submitted Answers
+            {editMode ? "Edit Interview Answers" : "Submitted Answers"}
             {editMode && <Badge variant="secondary">Edit Mode</Badge>}
           </h3>
 
@@ -479,7 +634,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     <span className="flex-1 text-left">{theme.themeName}</span>
                     <span className="text-xs text-muted-foreground">
-                      {themeAnswers.length}
+                      {editMode ? theme.questions.length : themeAnswers.length}
                     </span>
                   </TabsTrigger>
                 );
@@ -487,16 +642,13 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
             </TabsList>
 
             <div className="grow rounded-md border">
-              {questionnaire.themes.map((theme) => {
-                const themeAnswers = submittedAnswers.filter(
-                  (a) => a.themeId === theme.themeId
-                );
-
-                return (
+              {editMode ? (
+                // EDIT MODE - Show ALL questions from questionnaire
+                mergedData.map((theme) => (
                   <TabsContent
                     key={theme.themeId}
                     value={theme.themeId}
-                    className="p-6 space-y-6"
+                    className="p-6 space-y-8"
                   >
                     <div>
                       <h3 className="text-xl font-semibold">
@@ -509,97 +661,134 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
                       )}
                     </div>
 
-                    {themeAnswers.map((answer, idx) => {
-                      // Find the corresponding question from the questionnaire
-                      const question = theme.questions.find(
-                        (q) => q.questionId === answer.questionId
-                      );
-                      const isThemeNotes = !answer.questionText;
+                    {/* Render ALL questions */}
+                    {theme.questions.map((question, idx) => {
+                      const key = `${theme.themeId}_${question.questionId}`;
+                      const currentValue =
+                        editingAnswers[key] !== undefined
+                          ? editingAnswers[key]
+                          : question.answer;
 
                       return (
                         <div
-                          key={answer._id}
+                          key={question.questionId}
                           className="pb-6 border-b last:border-0"
                         >
                           <div className="mb-2 text-sm text-muted-foreground">
-                            {answer.questionText
-                              ? `Question ${idx + 1}`
-                              : "Theme Notes"}
+                            Question {idx + 1} of {theme.questions.length}
                           </div>
+                          <QuestionRenderer
+                            questionId={question.questionId}
+                            questionText={question.questionText}
+                            questionType={question.questionType}
+                            ratingScale={question.ratingScale || undefined}
+                            value={currentValue || ""}
+                            onChange={(value) =>
+                              handleEditAnswerChange(key, value)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
 
-                          {editMode ? (
-                            // Edit Mode - Use QuestionRenderer for proper input types
-                            isThemeNotes ? (
-                              // Theme notes editing
-                              <div>
-                                <Label className="text-sm font-medium">
-                                  General Theme Notes
-                                </Label>
-                                <Textarea
-                                  value={
-                                    editingAnswers[answer._id] ??
-                                    (answer.notes || "")
-                                  }
-                                  onChange={(e) =>
-                                    handleEditAnswer(answer._id, e.target.value)
-                                  }
-                                  className="mt-2 min-h-[100px]"
-                                  placeholder="Type general notes about this theme..."
-                                />
-                              </div>
-                            ) : question ? (
-                              // Question editing with proper renderer
-                              <QuestionRenderer
-                                questionId={answer._id}
-                                questionText={answer.questionText || ""}
-                                questionType={answer.questionType!}
-                                ratingScale={question.ratingScale || undefined}
-                                value={
-                                  editingAnswers[answer._id] ??
-                                  (answer.answer || "")
-                                }
-                                onChange={(value) =>
-                                  handleEditAnswer(answer._id, value)
-                                }
-                              />
-                            ) : (
-                              // Fallback to textarea if question not found
-                              <Textarea
-                                value={
-                                  editingAnswers[answer._id] ??
-                                  (answer.answer || answer.notes || "")
-                                }
-                                onChange={(e) =>
-                                  handleEditAnswer(answer._id, e.target.value)
-                                }
-                                className="min-h-[100px]"
-                              />
-                            )
-                          ) : (
-                            // Read-only Mode
+                    {/* Theme-level notes */}
+                    <div className="pt-4 border-t">
+                      <Label
+                        htmlFor={`theme-notes-${theme.themeId}`}
+                        className="text-sm font-medium"
+                      >
+                        General Theme Notes
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Add general notes about this theme instead of
+                        answering individual questions
+                      </p>
+                      <Textarea
+                        id={`theme-notes-${theme.themeId}`}
+                        value={
+                          editingAnswers[`${theme.themeId}_notes`] !==
+                          undefined
+                            ? editingAnswers[`${theme.themeId}_notes`]
+                            : theme.themeNotes || ""
+                        }
+                        onChange={(e) =>
+                          handleEditAnswerChange(
+                            `${theme.themeId}_notes`,
+                            e.target.value
+                          )
+                        }
+                        placeholder="Type general notes about this theme..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  </TabsContent>
+                ))
+              ) : (
+                // READ-ONLY MODE - Show only submitted answers
+                questionnaire.themes.map((theme) => {
+                  const themeAnswers = submittedAnswers.filter(
+                    (a) => a.themeId === theme.themeId
+                  );
+
+                  return (
+                    <TabsContent
+                      key={theme.themeId}
+                      value={theme.themeId}
+                      className="p-6 space-y-6"
+                    >
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          {theme.themeName}
+                        </h3>
+                        {theme.themeDescription && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {theme.themeDescription}
+                          </p>
+                        )}
+                      </div>
+
+                      {themeAnswers.map((answer, idx) => {
+                        // NEW v2.0: Separate individual answers (questionId exists) from theme notes (no questionId)
+                        const isThemeNote = !answer.questionId;
+
+                        return (
+                          <div
+                            key={answer._id}
+                            className="pb-6 border-b last:border-0"
+                          >
+                            <div className="mb-2 text-sm text-muted-foreground">
+                              {isThemeNote ? "Theme Notes" : `Question ${idx + 1}`}
+                            </div>
+
                             <div>
-                              {answer.questionText && (
+                              {!isThemeNote && (
                                 <h4 className="text-base font-medium mb-3">
                                   {answer.questionText}
                                 </h4>
                               )}
                               <div className="p-4 rounded-lg bg-muted/30">
                                 <p className="text-sm whitespace-pre-wrap">
-                                  {answer.answer || answer.notes || (
-                                    <em className="text-muted-foreground">
-                                      No answer provided
-                                    </em>
-                                  )}
+                                  {isThemeNote
+                                    ? answer.notes || (
+                                        <em className="text-muted-foreground">
+                                          No notes provided
+                                        </em>
+                                      )
+                                    : answer.answer || (
+                                        <em className="text-muted-foreground">
+                                          No answer provided
+                                        </em>
+                                      )}
                                 </p>
                               </div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </TabsContent>
-                );
-              })}
+                          </div>
+                        );
+                      })}
+                    </TabsContent>
+                  );
+                })
+              )}
             </div>
           </Tabs>
         </div>
@@ -683,7 +872,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
               </div>
 
               {theme.questions.map((question, idx) => {
-                const savedAnswer = getAnswer(
+                const savedAnswer = getQuestionAnswer(
                   theme.themeId,
                   question.questionId
                 );
@@ -729,7 +918,7 @@ export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
                 </p>
                 <Textarea
                   id={`theme-notes-${theme.themeId}`}
-                  value={getAnswer(theme.themeId, null)?.notes || ""}
+                  value={getThemeNotes(theme.themeId)?.notes || ""}
                   onChange={(e) =>
                     handleThemeNotesChange(
                       theme.themeId,
