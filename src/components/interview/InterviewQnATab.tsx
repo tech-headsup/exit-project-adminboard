@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   Loader2,
@@ -12,7 +12,7 @@ import {
   Clock,
   Edit2,
   Save,
-  X
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,45 +22,59 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useInterviewStore } from "@/stores/interviewStore";
-import { candidateService } from "@/api/services/candidateService";
-import { questionnaireService } from "@/api/services/questionnaireService";
-import { answerService } from "@/api/services/answerService";
 import { QuestionRenderer } from "./QuestionRenderer";
-import { Questionnaire, Theme } from "@/types/questionnaireTypes";
-import { AnswerInput, Answer } from "@/types/answerTypes";
+import { Theme } from "@/types/questionnaireTypes";
+import { AnswerInput } from "@/types/answerTypes";
+import { Candidate, OverallStatus } from "@/types/candidateTypes";
+
+// React Query Hooks
+import { useQuestionnaireById } from "@/hooks/useQuestionnaire";
+import {
+  useAnswersByCandidate,
+  useSubmitInterviewAnswers,
+  useUpdateAnswer,
+} from "@/hooks/useAnswer";
+import {
+  useUpdateInterviewDetails,
+  useUpdateCandidateStatus,
+} from "@/hooks/useCandidate";
 
 interface InterviewQnATabProps {
-  candidateId: string;
-  projectId: string;
-  questionnaireId: string;
-  scheduledDate?: Date | string;
-  startedAt?: Date | string;
-  completedAt?: Date | string;
-  interviewDurationMinutes?: number;
-  answersSubmitted?: boolean;
-  interviewerId: string;
-  interviewerName?: string;
-  onInterviewComplete: () => void;
+  candidate: Candidate;
 }
 
-export function InterviewQnATab({
-  candidateId,
-  projectId,
-  questionnaireId,
-  scheduledDate,
-  startedAt,
-  completedAt,
-  interviewDurationMinutes,
-  answersSubmitted,
-  interviewerId,
-  interviewerName,
-  onInterviewComplete,
-}: InterviewQnATabProps) {
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
+export function InterviewQnATab({ candidate }: InterviewQnATabProps) {
+  // Extract needed values from candidate
+  const candidateId = candidate._id;
+  const projectId = candidate.projectId;
+  const questionnaireId = candidate.interviewDetails?.questionnaireId || "";
+  const scheduledDate = candidate.interviewDetails?.scheduledDate;
+  const startedAt = candidate.interviewDetails?.startedAt;
+  const completedAt = candidate.interviewDetails?.completedAt;
+  const interviewDurationMinutes =
+    candidate.interviewDetails?.interviewDurationMinutes;
+  const answersSubmitted = candidate.interviewDetails?.answersSubmitted;
+  const interviewerId =
+    typeof candidate.assignedInterviewer === "string"
+      ? candidate.assignedInterviewer
+      : candidate.assignedInterviewer?._id || "";
+  const interviewerName =
+    typeof candidate.assignedInterviewer === "string"
+      ? undefined
+      : candidate.assignedInterviewer
+      ? `${candidate.assignedInterviewer.firstName} ${candidate.assignedInterviewer.lastName}`
+      : undefined;
+  // Determine interview status FIRST (needed for hooks)
+  const getInterviewStatus = () => {
+    if (completedAt) return "COMPLETED";
+    if (startedAt) return "IN_PROGRESS";
+    if (scheduledDate) return "SCHEDULED";
+    return "NOT_STARTED";
+  };
+
+  const status = getInterviewStatus();
+
   const [currentThemeId, setCurrentThemeId] = useState<string>("");
-  const [submittedAnswers, setSubmittedAnswers] = useState<Answer[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [editingAnswers, setEditingAnswers] = useState<Record<string, any>>({});
 
@@ -73,87 +87,59 @@ export function InterviewQnATab({
     startedAt: zustandStartedAt,
   } = useInterviewStore();
 
-  // Determine interview status
-  const getInterviewStatus = () => {
-    if (completedAt) return "COMPLETED";
-    if (startedAt) return "IN_PROGRESS";
-    if (scheduledDate) return "SCHEDULED";
-    return "NOT_STARTED";
-  };
+  // React Query Hooks
+  const shouldFetchQuestionnaire =
+    (status === "IN_PROGRESS" || status === "COMPLETED") && !!questionnaireId;
 
-  const status = getInterviewStatus();
+  const { data: questionnaireResponse, isLoading: isLoadingQuestionnaire } =
+    useQuestionnaireById(questionnaireId, shouldFetchQuestionnaire);
 
-  // Load questionnaire when needed
-  useEffect(() => {
-    const loadQuestionnaire = async () => {
-      if (!questionnaireId) return;
+  const questionnaire = questionnaireResponse?.data || null;
 
-      try {
-        setLoading(true);
-        const response = await questionnaireService.getQuestionnaire({
-          id: questionnaireId,
-        });
-        setQuestionnaire(response.data);
+  const { data: answersResponse, isLoading: isLoadingAnswers } =
+    useAnswersByCandidate(candidateId, undefined, status === "COMPLETED");
 
-        if (response.data.themes.length > 0) {
-          setCurrentThemeId(response.data.themes[0].themeId);
-        }
-      } catch (error) {
-        console.error("Failed to load questionnaire:", error);
-        toast.error("Failed to load questionnaire");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const submittedAnswers =
+    answersResponse?.data.themes.flatMap((t) => t.answers) || [];
 
-    if (status === "IN_PROGRESS" || status === "COMPLETED") {
-      loadQuestionnaire();
-    }
-  }, [questionnaireId, status]);
+  const updateInterviewDetailsMutation = useUpdateInterviewDetails();
+  const submitInterviewMutation = useSubmitInterviewAnswers();
+  const updateAnswerMutation = useUpdateAnswer();
+  const updateCandidateStatusMutation = useUpdateCandidateStatus();
 
-  // Load submitted answers if completed
-  useEffect(() => {
-    const loadSubmittedAnswers = async () => {
-      if (status !== "COMPLETED") return;
+  const loading = isLoadingQuestionnaire || isLoadingAnswers;
+  const submitting =
+    updateInterviewDetailsMutation.isPending ||
+    submitInterviewMutation.isPending ||
+    updateAnswerMutation.isPending ||
+    updateCandidateStatusMutation.isPending;
 
-      try {
-        setLoading(true);
-        const response = await answerService.getAnswersByCandidate({
-          candidateId,
-        });
-        setSubmittedAnswers(response.data.themes.flatMap(t => t.answers));
-      } catch (error) {
-        console.error("Failed to load answers:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (status === "COMPLETED") {
-      loadSubmittedAnswers();
-    }
-  }, [status, candidateId]);
+  // Set initial theme when questionnaire loads
+  if (questionnaire && !currentThemeId && questionnaire.themes.length > 0) {
+    setCurrentThemeId(questionnaire.themes[0].themeId);
+  }
 
   // Start interview
   const handleStartInterview = async () => {
     try {
-      setLoading(true);
-
       const startedAtTime = new Date().toISOString();
-      await candidateService.updateInterviewDetails({
+
+      await updateInterviewDetailsMutation.mutateAsync({
         candidateId,
         startedAt: startedAtTime,
       });
 
-      initializeInterview(candidateId, projectId, questionnaireId, startedAtTime);
+      initializeInterview(
+        candidateId,
+        projectId,
+        questionnaireId,
+        startedAtTime
+      );
 
       toast.success("Interview started!");
-      onInterviewComplete();
     } catch (error) {
       console.error("Failed to start interview:", error);
       toast.error("Failed to start interview");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -166,7 +152,15 @@ export function InterviewQnATab({
     questionType: any,
     answer: any
   ) => {
-    setAnswer(themeId, themeName, questionId, questionText, questionType, answer, "");
+    setAnswer(
+      themeId,
+      themeName,
+      questionId,
+      questionText,
+      questionType,
+      answer,
+      ""
+    );
   };
 
   // Handle theme notes change
@@ -227,8 +221,6 @@ export function InterviewQnATab({
     }
 
     try {
-      setSubmitting(true);
-
       const completedAtTime = new Date();
       const startTime = new Date(zustandStartedAt || startedAt!);
       const durationMinutes = Math.round(
@@ -247,7 +239,8 @@ export function InterviewQnATab({
           notes: a.notes !== "" ? a.notes : undefined,
         }));
 
-      await answerService.submitInterviewAnswers({
+      // Step 1: Submit interview answers
+      await submitInterviewMutation.mutateAsync({
         candidateId,
         projectId,
         questionnaireId,
@@ -257,37 +250,37 @@ export function InterviewQnATab({
         interviewDurationMinutes: durationMinutes,
       });
 
-      // Update overall status to INTERVIEWED (backend should handle this, but we'll ensure it)
-      // The backend pre-save hook should automatically set overallStatus to INTERVIEWED
-      // when answersSubmitted is true
+      // Step 2: Update overall status to INTERVIEWED
+      await updateCandidateStatusMutation.mutateAsync({
+        candidateId,
+        overallStatus: OverallStatus.INTERVIEWED,
+      });
 
+      // React Query automatically invalidates and refetches related queries
       clearInterview();
       toast.success("Interview completed successfully!");
-      onInterviewComplete();
     } catch (error: any) {
       console.error("Failed to submit interview:", error);
-      const errorMsg = error?.response?.data?.error || "Failed to submit interview";
+      const errorMsg =
+        error?.response?.data?.error || "Failed to submit interview";
       toast.error(errorMsg);
-    } finally {
-      setSubmitting(false);
     }
   };
 
   // Handle edit answer
   const handleEditAnswer = (answerId: string, newValue: any) => {
-    setEditingAnswers(prev => ({
+    setEditingAnswers((prev) => ({
       ...prev,
-      [answerId]: newValue
+      [answerId]: newValue,
     }));
   };
 
   // Save edited answers
   const handleSaveEdits = async () => {
     try {
-      setSubmitting(true);
-
+      // Update all edited answers
       for (const [answerId, value] of Object.entries(editingAnswers)) {
-        await answerService.updateAnswer({
+        await updateAnswerMutation.mutateAsync({
           id: answerId,
           answer: value,
         });
@@ -297,15 +290,10 @@ export function InterviewQnATab({
       setEditMode(false);
       setEditingAnswers({});
 
-      const response = await answerService.getAnswersByCandidate({
-        candidateId,
-      });
-      setSubmittedAnswers(response.data.themes.flatMap(t => t.answers));
+      // React Query automatically refetches the answers via cache invalidation
     } catch (error) {
       console.error("Failed to update answers:", error);
       toast.error("Failed to update answers");
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -322,9 +310,11 @@ export function InterviewQnATab({
         <Calendar className="mx-auto h-12 w-12 text-muted-foreground/50" />
         <h3 className="mt-4 text-lg font-semibold">No Interview Scheduled</h3>
         <p className="text-muted-foreground mt-2">
-          Please schedule an interview from the Follow-ups & Interview tab first.
+          Please schedule an interview from the Follow-ups & Interview tab
+          first.
           <br />
-          Add a follow-up with &quot;Answered - Agreed&quot; status to schedule the interview.
+          Add a follow-up with &quot;Answered - Agreed&quot; status to schedule
+          the interview.
         </p>
       </div>
     );
@@ -340,7 +330,8 @@ export function InterviewQnATab({
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
             <Clock className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              {scheduledDate && format(new Date(scheduledDate), "MMMM dd, yyyy 'at' hh:mm a")}
+              {scheduledDate &&
+                format(new Date(scheduledDate), "MMMM dd, yyyy 'at' hh:mm a")}
             </span>
           </div>
         </div>
@@ -394,17 +385,24 @@ export function InterviewQnATab({
                   </h3>
                   <div className="mt-2 space-y-1 text-sm text-green-700 dark:text-green-300">
                     <p>
-                      <strong>Completed by:</strong> {interviewerName || "Interviewer"}
+                      <strong>Completed by:</strong>{" "}
+                      {interviewerName || "Interviewer"}
                     </p>
                     <p>
                       <strong>Date:</strong>{" "}
-                      {completedAt && format(new Date(completedAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                      {completedAt &&
+                        format(
+                          new Date(completedAt),
+                          "MMMM dd, yyyy 'at' hh:mm a"
+                        )}
                     </p>
                     <p>
-                      <strong>Duration:</strong> {interviewDurationMinutes || 0} minutes
+                      <strong>Duration:</strong> {interviewDurationMinutes || 0}{" "}
+                      minutes
                     </p>
                     <p>
-                      <strong>Total Answers:</strong> {submittedAnswers.length} responses
+                      <strong>Total Answers:</strong> {submittedAnswers.length}{" "}
+                      responses
                     </p>
                   </div>
                 </div>
@@ -495,9 +493,15 @@ export function InterviewQnATab({
                 );
 
                 return (
-                  <TabsContent key={theme.themeId} value={theme.themeId} className="p-6 space-y-6">
+                  <TabsContent
+                    key={theme.themeId}
+                    value={theme.themeId}
+                    className="p-6 space-y-6"
+                  >
                     <div>
-                      <h3 className="text-xl font-semibold">{theme.themeName}</h3>
+                      <h3 className="text-xl font-semibold">
+                        {theme.themeName}
+                      </h3>
                       {theme.themeDescription && (
                         <p className="text-sm text-muted-foreground mt-1">
                           {theme.themeDescription}
@@ -507,13 +511,20 @@ export function InterviewQnATab({
 
                     {themeAnswers.map((answer, idx) => {
                       // Find the corresponding question from the questionnaire
-                      const question = theme.questions.find(q => q.questionId === answer.questionId);
+                      const question = theme.questions.find(
+                        (q) => q.questionId === answer.questionId
+                      );
                       const isThemeNotes = !answer.questionText;
 
                       return (
-                        <div key={answer._id} className="pb-6 border-b last:border-0">
+                        <div
+                          key={answer._id}
+                          className="pb-6 border-b last:border-0"
+                        >
                           <div className="mb-2 text-sm text-muted-foreground">
-                            {answer.questionText ? `Question ${idx + 1}` : "Theme Notes"}
+                            {answer.questionText
+                              ? `Question ${idx + 1}`
+                              : "Theme Notes"}
                           </div>
 
                           {editMode ? (
@@ -521,10 +532,17 @@ export function InterviewQnATab({
                             isThemeNotes ? (
                               // Theme notes editing
                               <div>
-                                <Label className="text-sm font-medium">General Theme Notes</Label>
+                                <Label className="text-sm font-medium">
+                                  General Theme Notes
+                                </Label>
                                 <Textarea
-                                  value={editingAnswers[answer._id] ?? (answer.notes || "")}
-                                  onChange={(e) => handleEditAnswer(answer._id, e.target.value)}
+                                  value={
+                                    editingAnswers[answer._id] ??
+                                    (answer.notes || "")
+                                  }
+                                  onChange={(e) =>
+                                    handleEditAnswer(answer._id, e.target.value)
+                                  }
                                   className="mt-2 min-h-[100px]"
                                   placeholder="Type general notes about this theme..."
                                 />
@@ -536,14 +554,24 @@ export function InterviewQnATab({
                                 questionText={answer.questionText || ""}
                                 questionType={answer.questionType!}
                                 ratingScale={question.ratingScale || undefined}
-                                value={editingAnswers[answer._id] ?? (answer.answer || "")}
-                                onChange={(value) => handleEditAnswer(answer._id, value)}
+                                value={
+                                  editingAnswers[answer._id] ??
+                                  (answer.answer || "")
+                                }
+                                onChange={(value) =>
+                                  handleEditAnswer(answer._id, value)
+                                }
                               />
                             ) : (
                               // Fallback to textarea if question not found
                               <Textarea
-                                value={editingAnswers[answer._id] ?? (answer.answer || answer.notes || "")}
-                                onChange={(e) => handleEditAnswer(answer._id, e.target.value)}
+                                value={
+                                  editingAnswers[answer._id] ??
+                                  (answer.answer || answer.notes || "")
+                                }
+                                onChange={(e) =>
+                                  handleEditAnswer(answer._id, e.target.value)
+                                }
                                 className="min-h-[100px]"
                               />
                             )
@@ -551,11 +579,17 @@ export function InterviewQnATab({
                             // Read-only Mode
                             <div>
                               {answer.questionText && (
-                                <h4 className="text-base font-medium mb-3">{answer.questionText}</h4>
+                                <h4 className="text-base font-medium mb-3">
+                                  {answer.questionText}
+                                </h4>
                               )}
                               <div className="p-4 rounded-lg bg-muted/30">
                                 <p className="text-sm whitespace-pre-wrap">
-                                  {answer.answer || answer.notes || <em className="text-muted-foreground">No answer provided</em>}
+                                  {answer.answer || answer.notes || (
+                                    <em className="text-muted-foreground">
+                                      No answer provided
+                                    </em>
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -581,15 +615,14 @@ export function InterviewQnATab({
           <h2 className="text-2xl font-bold">{questionnaire.name}</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {questionnaire.themes.length} themes •{" "}
-            {questionnaire.themes.reduce((acc, t) => acc + t.questions.length, 0)}{" "}
+            {questionnaire.themes.reduce(
+              (acc, t) => acc + t.questions.length,
+              0
+            )}{" "}
             questions
           </p>
         </div>
-        <Button
-          onClick={handleSubmitInterview}
-          disabled={submitting}
-          size="lg"
-        >
+        <Button onClick={handleSubmitInterview} disabled={submitting} size="lg">
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -635,7 +668,11 @@ export function InterviewQnATab({
 
         <div className="grow rounded-md border">
           {questionnaire.themes.map((theme) => (
-            <TabsContent key={theme.themeId} value={theme.themeId} className="p-6 space-y-8">
+            <TabsContent
+              key={theme.themeId}
+              value={theme.themeId}
+              className="p-6 space-y-8"
+            >
               <div>
                 <h3 className="text-xl font-semibold">{theme.themeName}</h3>
                 {theme.themeDescription && (
@@ -646,9 +683,15 @@ export function InterviewQnATab({
               </div>
 
               {theme.questions.map((question, idx) => {
-                const savedAnswer = getAnswer(theme.themeId, question.questionId);
+                const savedAnswer = getAnswer(
+                  theme.themeId,
+                  question.questionId
+                );
                 return (
-                  <div key={question.questionId} className="pb-6 border-b last:border-0">
+                  <div
+                    key={question.questionId}
+                    className="pb-6 border-b last:border-0"
+                  >
                     <div className="mb-2 text-sm text-muted-foreground">
                       Question {idx + 1} of {theme.questions.length}
                     </div>
@@ -674,11 +717,15 @@ export function InterviewQnATab({
               })}
 
               <div className="pt-4 border-t">
-                <Label htmlFor={`theme-notes-${theme.themeId}`} className="text-sm font-medium">
+                <Label
+                  htmlFor={`theme-notes-${theme.themeId}`}
+                  className="text-sm font-medium"
+                >
                   General Theme Notes
                 </Label>
                 <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  Add general notes about this theme instead of answering individual questions
+                  Add general notes about this theme instead of answering
+                  individual questions
                 </p>
                 <Textarea
                   id={`theme-notes-${theme.themeId}`}

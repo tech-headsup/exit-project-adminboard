@@ -22,15 +22,10 @@ export default function CandidateDetails() {
   const { id: projectId, candidateId } = router.query;
 
   // Fetch candidate data
-  const { data, isLoading, error, refetch } = useCandidateById(
+  const { data, isLoading, error } = useCandidateById(
     candidateId as string,
     !!candidateId
   );
-
-  // Handle interview completion
-  const handleInterviewComplete = () => {
-    refetch();
-  };
 
   // Loading state
   if (isLoading) {
@@ -205,29 +200,7 @@ export default function CandidateDetails() {
 
         {/* Q&A Form Tab */}
         <TabsContent value="qna">
-          <InterviewQnATab
-            candidateId={candidate._id}
-            projectId={candidate.projectId}
-            questionnaireId={candidate.interviewDetails?.questionnaireId || ""}
-            scheduledDate={candidate.interviewDetails?.scheduledDate}
-            startedAt={candidate.interviewDetails?.startedAt}
-            completedAt={candidate.interviewDetails?.completedAt}
-            interviewDurationMinutes={candidate.interviewDetails?.interviewDurationMinutes}
-            answersSubmitted={candidate.interviewDetails?.answersSubmitted}
-            interviewerId={
-              typeof candidate.assignedInterviewer === "string"
-                ? candidate.assignedInterviewer
-                : candidate.assignedInterviewer?._id || ""
-            }
-            interviewerName={
-              typeof candidate.assignedInterviewer === "string"
-                ? undefined
-                : candidate.assignedInterviewer
-                ? `${candidate.assignedInterviewer.firstName} ${candidate.assignedInterviewer.lastName}`
-                : undefined
-            }
-            onInterviewComplete={handleInterviewComplete}
-          />
+          <InterviewQnATab candidate={candidate} />
         </TabsContent>
 
         {/* Report Tab */}
