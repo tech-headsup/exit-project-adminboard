@@ -75,4 +75,12 @@ export const API_ENDPOINTS = {
     UPDATE: "/answer/update", // Body: { id, answer?, notes? }
     DELETE: "/answer/delete", // Body: { id, hardDelete? }
   },
+
+  // AI Report endpoints (all POST with data in req.body)
+  AI_REPORT: {
+    CHECK_STATUS: "/report/check-status", // Body: { candidateId }
+    GET_BY_CANDIDATE: "/report/get-by-candidate", // Body: { candidateId }
+    UPDATE: "/report/update", // Body: { reportId, editedBy, updatedReport }
+    GENERATE_PDF: "/report/generate-pdf", // Body: { candidateId } - Returns PDF blob
+  },
 };

@@ -16,12 +16,15 @@ import { useCandidateById } from "@/hooks/useCandidate";
 import { ProfileDetailsTab } from "@/components/candidates/ProfileDetailsTab";
 import { FollowupsInterviewTab } from "@/components/candidates/FollowupsInterviewTab";
 import { InterviewQnATab } from "@/components/interview/InterviewQnATab";
+import { AIReportViewer } from "@/components/ai-report/AIReportViewer";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useEffect } from "react";
 
 export default function CandidateDetails() {
   const router = useRouter();
   const { id: projectId, candidateId } = router.query;
+  const { user } = useAuthContext();
 
   // Manage selected tab via URL query parameter
   const [selectedTab, setSelectedTab] = useQueryState(
@@ -236,12 +239,19 @@ export default function CandidateDetails() {
 
         {/* Report Tab */}
         <TabsContent value="report">
-          <div className="rounded-lg border border-dashed p-12 text-center">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground mt-4">
-              AI-generated report will be displayed here.
-            </p>
-          </div>
+          {candidateId && user?._id ? (
+            <AIReportViewer
+              candidateId={candidateId as string}
+              userId={user._id}
+            />
+          ) : (
+            <div className="rounded-lg border border-dashed p-12 text-center">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="text-muted-foreground mt-4">
+                Unable to load report viewer. Please try again.
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

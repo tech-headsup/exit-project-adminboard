@@ -53,4 +53,11 @@ export const queryKeys = {
     byCandidate: (params: GetAnswersByCandidateRequest) => ["answers", "candidate", params] as const,
     byProject: (params: GetAnswersByProjectRequest) => ["answers", "project", params] as const,
   },
+
+  // AI Report keys
+  aiReports: {
+    all: ["aiReports"] as const,
+    status: (candidateId: string) => ["aiReports", "status", candidateId] as const,
+    byCandidate: (candidateId: string) => ["aiReports", "candidate", candidateId] as const,
+  },
 };
