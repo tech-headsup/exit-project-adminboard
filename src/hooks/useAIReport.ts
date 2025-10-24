@@ -6,6 +6,7 @@ import {
   GetReportByCandidateRequest,
   UpdateReportRequest,
   GeneratePDFRequest,
+  RegenerateReportRequest,
   ReportStatus,
 } from "@/types/aiReportTypes";
 
@@ -108,6 +109,33 @@ export const useGeneratePDF = () => {
       // Invalidate report to update download count
       queryClient.invalidateQueries({
         queryKey: queryKeys.aiReports.byCandidate(candidateId),
+      });
+    },
+  });
+};
+
+/**
+ * Hook to regenerate AI report (delete old and create new)
+ * This will invalidate both status and report queries to trigger refetch
+ */
+export const useRegenerateReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: RegenerateReportRequest) =>
+      aiReportService.regenerateReport(params),
+    onSuccess: (response, variables) => {
+      // Invalidate status query to start polling for new report
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.aiReports.status(variables.candidateId),
+      });
+      // Invalidate report query
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.aiReports.byCandidate(variables.candidateId),
+      });
+      // Also invalidate the candidate detail to update reportId
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.candidates.detail(variables.candidateId),
       });
     },
   });

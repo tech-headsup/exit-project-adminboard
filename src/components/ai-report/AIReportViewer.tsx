@@ -6,10 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { useAIReport } from "@/hooks/useAIReport";
 import { useGeneratePDF } from "@/hooks/useAIReport";
 import { useUpdateReport } from "@/hooks/useAIReport";
+import { useRegenerateReport } from "@/hooks/useAIReport";
 import { useReportStore } from "@/stores/reportStore";
 import { ReportStatus } from "@/types/aiReportTypes";
-import { Download, Edit, Save, X, FileText } from "lucide-react";
+import { Download, Edit, Save, X, FileText, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Import all card components
 import { ReportStatusIndicator } from "./ReportStatusIndicator";
@@ -52,6 +64,7 @@ export function AIReportViewer({ candidateId, userId }: AIReportViewerProps) {
   // Mutations
   const { mutate: generatePDF, isPending: isGeneratingPDF } = useGeneratePDF();
   const { mutate: updateReport, isPending: isUpdatingReport } = useUpdateReport();
+  const { mutate: regenerateReport, isPending: isRegenerating } = useRegenerateReport();
 
   // Handle edit mode toggle
   const handleStartEdit = () => {
@@ -101,6 +114,28 @@ export function AIReportViewer({ candidateId, userId }: AIReportViewerProps) {
         onError: (error: any) => {
           toast.error(
             error?.response?.data?.error || "Failed to generate PDF"
+          );
+        },
+      }
+    );
+  };
+
+  // Handle report regeneration
+  const handleRegenerateReport = () => {
+    // Exit edit mode if active
+    if (isEditMode) {
+      cancelEditing();
+    }
+
+    regenerateReport(
+      { candidateId },
+      {
+        onSuccess: () => {
+          toast.success("Report regeneration started. Please wait...");
+        },
+        onError: (error: any) => {
+          toast.error(
+            error?.response?.data?.error || "Failed to regenerate report"
           );
         },
       }
@@ -190,17 +225,59 @@ export function AIReportViewer({ candidateId, userId }: AIReportViewerProps) {
         <div className="flex items-center gap-2">
           {!isEditMode ? (
             <>
+              {/* Regenerate Report Button with Confirmation Dialog */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={isGeneratingPDF || isRegenerating}
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Regenerate Report
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Regenerate AI Report?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete the current report and generate a new one from scratch.
+                      Any manual edits will be lost. This action cannot be undone.
+                      <br /><br />
+                      <strong>Note:</strong> The new report will be generated based on the latest interview answers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleRegenerateReport}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Regenerate
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
               <Button
                 variant="outline"
                 onClick={handleStartEdit}
-                disabled={isGeneratingPDF}
+                disabled={isGeneratingPDF || isRegenerating}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Report
               </Button>
               <Button
                 onClick={handleDownloadPDF}
-                disabled={isGeneratingPDF}
+                disabled={isGeneratingPDF || isRegenerating}
               >
                 {isGeneratingPDF ? (
                   <>

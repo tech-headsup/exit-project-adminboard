@@ -82,5 +82,6 @@ export const API_ENDPOINTS = {
     GET_BY_CANDIDATE: "/report/get-by-candidate", // Body: { candidateId }
     UPDATE: "/report/update", // Body: { reportId, editedBy, updatedReport }
     GENERATE_PDF: "/report/generate-pdf", // Body: { candidateId } - Returns PDF blob
+    REGENERATE: "/report/regenerate", // Body: { candidateId } - Deletes old report and creates new one
   },
 };

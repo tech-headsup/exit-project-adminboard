@@ -97,6 +97,11 @@ export interface GeneratePDFRequest {
   candidateId: string;
 }
 
+// Regenerate Report Request - POST /api/v1/ai-report/regenerate
+export interface RegenerateReportRequest {
+  candidateId: string;
+}
+
 // ==================== RESPONSE TYPES ====================
 
 // Check Report Status Response - POST /api/v1/ai-report/check-status
@@ -128,3 +133,10 @@ export interface UpdateReportResponse {
 // Generate PDF Response - Returns Blob (not JSON)
 // The response will be a PDF file blob that needs to be handled differently
 export type GeneratePDFResponse = Blob;
+
+// Regenerate Report Response - POST /api/v1/ai-report/regenerate
+export interface RegenerateReportResponse {
+  success: true;
+  message: string;
+  data: AIReport;
+}

@@ -7,6 +7,8 @@ import {
   UpdateReportResponse,
   GeneratePDFRequest,
   GeneratePDFResponse,
+  RegenerateReportRequest,
+  RegenerateReportResponse,
 } from "@/types/aiReportTypes";
 import apiClient from "../client";
 import { API_ENDPOINTS } from "@/constant/apiEnpoints";
@@ -53,6 +55,17 @@ export const aiReportService = {
       {
         responseType: "blob", // Important: Tell axios to expect a blob response
       }
+    );
+    return response.data;
+  },
+
+  // Regenerate report (delete old and create new)
+  regenerateReport: async (
+    params: RegenerateReportRequest
+  ): Promise<RegenerateReportResponse> => {
+    const response = await apiClient.post(
+      API_ENDPOINTS.AI_REPORT.REGENERATE,
+      params
     );
     return response.data;
   },
