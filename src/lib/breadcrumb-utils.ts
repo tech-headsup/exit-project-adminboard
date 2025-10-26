@@ -26,6 +26,7 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
 
     // Build breadcrumbs based on segments
     let currentPath = "";
+    let actualPath = ""; // Track the actual path with resolved parameters
 
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
@@ -37,15 +38,17 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
         const paramValue = query[paramName];
 
         if (paramValue) {
+          actualPath += `/${paramValue}`;
           breadcrumbs.push({
             label: formatLabel(paramValue as string),
-            href: index === pathSegments.length - 1 ? undefined : currentPath.replace(`[${paramName}]`, paramValue as string),
+            href: index === pathSegments.length - 1 ? undefined : actualPath,
           });
         }
         return;
       }
 
       // Format the segment label
+      actualPath += `/${segment}`;
       const label = formatLabel(segment);
 
       // Last segment should not have href (current page)
@@ -53,7 +56,7 @@ export function useBreadcrumbs(): BreadcrumbItem[] {
 
       breadcrumbs.push({
         label,
-        href: isLast ? undefined : currentPath,
+        href: isLast ? undefined : actualPath,
       });
     });
 

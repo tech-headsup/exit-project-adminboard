@@ -54,6 +54,7 @@ export function CompanyBasicDetailsFields<T extends FieldValues>({
                 {...field}
                 type="email"
                 placeholder="company@example.com"
+                required
               />
             </FormControl>
             <FormMessage />

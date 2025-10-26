@@ -12,8 +12,8 @@ export const projectSetupSchema = z.object({
   }),
   noOfEmployees: z
     .number()
-    .min(1, "Number of employees must be at least 1")
-    .max(10000, "Number of employees cannot exceed 10,000"),
+    .min(1, "Number of candidates must be at least 1")
+    .max(10000, "Number of candidates cannot exceed 10,000"),
   questionnaireId: z.string().min(1, "Please select a questionnaire"),
 });
 

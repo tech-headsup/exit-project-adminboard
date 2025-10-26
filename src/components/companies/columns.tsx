@@ -90,7 +90,7 @@ export const getCompanyColumns = (
   {
     header: "Industry",
     accessorKey: "industry",
-    size: 100,
+    size: 150,
   },
   {
     header: "Size",

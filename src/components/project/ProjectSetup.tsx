@@ -141,7 +141,7 @@ export function ProjectSetup({ control }: ProjectSetupProps) {
               name="noOfEmployees"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Number of Employees *</FormLabel>
+                  <FormLabel>Number of Candidates *</FormLabel>
                   <FormControl>
                     <Input
                       type="number"

@@ -243,16 +243,18 @@ export interface UploadCandidatesRequest {
   candidates: ExcelCandidateRow[];
 }
 
-// Search filter operators (MongoDB format)
+// Search filter operators (Q   ``MongoDB format with $ prefix)
 export interface SearchOperators {
   $eq?: any;
-  $contains?: string;
-  $in?: any[];
-  $gte?: string | number;
-  $lte?: string | number;
-  $gt?: string | number;
-  $lt?: string | number;
   $ne?: any;
+  $gt?: string | number;
+  $gte?: string | number;
+  $lt?: string | number;
+  $lte?: string | number;
+  $in?: any[];
+  $nin?: any[];
+  $regex?: string;
+  $options?: string;
 }
 
 // Search filters

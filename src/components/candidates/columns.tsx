@@ -199,7 +199,7 @@ export const getCandidateColumns = (
           <div>
             <div className="font-medium">{row.original.name}</div>
             <div className="text-xs text-muted-foreground">
-              {row.original.email}
+              {(row.original.email).slice(0,20)+"..."}
             </div>
           </div>
         </div>

@@ -123,7 +123,7 @@ export default function CompanyDetails() {
       form.reset({
         companyEmail: company.companyEmail || "",
         nameOfCompany: company.nameOfCompany || "",
-        companyLogo: getImageUrl(company.companyLogo) || "",
+        companyLogo: company.companyLogo || "",
         themeColor: company.companyThemeColor || "#000000",
         companySize: company.companySize || "",
         industry: company.industry || "",
@@ -262,7 +262,7 @@ export default function CompanyDetails() {
                   <CompanyLogoUpload
                     fileState={fileState}
                     fileActions={fileActions}
-                    companyLogo={form.watch("companyLogo")}
+                    companyLogo={getImageUrl(form.watch("companyLogo"))}
                     isUploadingImage={isUploadingImage}
                     uploadError={uploadError}
                   />

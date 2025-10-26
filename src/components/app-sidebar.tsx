@@ -68,14 +68,14 @@ const data = {
           title: "Exit Questionaire",
           url: "#Exit",
         },
-        {
-          title: "Stay Questionaire",
-          url: "#Stay",
-        },
-        {
-          title: "Offer For Dropouts",
-          url: "#Offer",
-        },
+        // {
+        //   title: "Stay Questionaire",
+        //   url: "#Stay",
+        // },
+        // {
+        //   title: "Offer For Dropouts",
+        //   url: "#Offer",
+        // },
       ],
     },
     {

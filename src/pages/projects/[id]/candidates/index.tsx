@@ -18,8 +18,6 @@ import { useCandidates } from "@/hooks/useCandidate";
 import {
   Candidate,
   OverallStatus,
-  InterviewStatus,
-  CallStatus,
   GetCandidatesRequest,
   CandidateSearchFilters,
   CandidateSortOptions,
@@ -36,9 +34,6 @@ function Candidates() {
   const [overallStatusFilter, setOverallStatusFilter] = useState<
     OverallStatus[]
   >([]);
-  const [interviewStatusFilter, setInterviewStatusFilter] = useState<
-    InterviewStatus[]
-  >([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -53,37 +48,27 @@ function Candidates() {
       search.projectId = projectId as any;
     }
 
-    // Default to active candidates only
-    search.isActive = { $eq: true };
+    // Default to active candidates only (direct boolean value)
+    search.isActive = true as any;
 
     // Handle sorting from table
     if (sorting.length > 0) {
       sorting.forEach((s) => {
-        // Handle nested field for interview status
-        if (s.id === "interviewDetails.status") {
-          sort["interviewDetails.status"] = s.desc ? -1 : 1;
-        } else {
-          sort[s.id as keyof Candidate] = s.desc ? -1 : 1;
-        }
+        sort[s.id as keyof Candidate] = s.desc ? -1 : 1;
       });
     } else {
       // Default sort by createdAt descending
       sort.createdAt = -1;
     }
 
-    // Search by name or email
+    // Search by name or email (using MongoDB $regex operator)
     if (searchText) {
-      search.name = { $contains: searchText };
+      search.name = { $regex: searchText, $options: "i" } as any;
     }
 
-    // Filter by overall status
+    // Filter by overall status (using MongoDB $in operator)
     if (overallStatusFilter.length > 0) {
       search.overallStatus = { $in: overallStatusFilter };
-    }
-
-    // Filter by interview status
-    if (interviewStatusFilter.length > 0) {
-      search["interviewDetails.status"] = { $in: interviewStatusFilter };
     }
 
     return { page, limit, search, sort };
@@ -93,7 +78,6 @@ function Candidates() {
     projectId,
     searchText,
     overallStatusFilter,
-    interviewStatusFilter,
     sorting,
   ]);
 
@@ -113,8 +97,6 @@ function Candidates() {
   const handleFilterChange = (key: string, value: any) => {
     if (key === "overallStatus") {
       setOverallStatusFilter(value);
-    } else if (key === "interviewStatus") {
-      setInterviewStatusFilter(value);
     }
     setPage(1);
   };
@@ -193,24 +175,9 @@ function Candidates() {
             { label: "Dropped", value: OverallStatus.DROPPED },
           ],
         },
-        {
-          key: "interviewStatus" as keyof Candidate,
-          label: "Interview Status",
-          type: "checkbox",
-          options: [
-            { label: "Not Started", value: InterviewStatus.NOT_STARTED },
-            { label: "Scheduled", value: InterviewStatus.SCHEDULED },
-            { label: "In Progress", value: InterviewStatus.IN_PROGRESS },
-            { label: "Completed", value: InterviewStatus.COMPLETED },
-            { label: "Cancelled", value: InterviewStatus.CANCELLED },
-            { label: "No Show", value: InterviewStatus.NO_SHOW },
-            { label: "Rescheduled", value: InterviewStatus.RESCHEDULED },
-          ],
-        },
       ]}
       filterValues={{
         overallStatus: overallStatusFilter,
-        interviewStatus: interviewStatusFilter,
       }}
       onFilterChange={handleFilterChange}
       bulkActions={[]}

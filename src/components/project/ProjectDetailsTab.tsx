@@ -172,13 +172,13 @@ export function ProjectDetailsTab({ project }: ProjectDetailsTabProps) {
                   name="noOfEmployees"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Number of Employees</FormLabel>
+                      <FormLabel>Number of Candidates</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          placeholder="Enter number of employees"
+                          placeholder="Enter number of Candidates"
                         />
                       </FormControl>
                       <FormMessage />
